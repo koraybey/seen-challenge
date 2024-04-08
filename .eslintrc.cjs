@@ -38,6 +38,7 @@ module.exports = {
     ],
     ignorePatterns: ['dist', 'lib'],
     rules: {
+        'unicorn/no-array-callback-reference': 'off',
         'functional/functional-parameters': 'off',
         'prefer-template': 'error',
         'no-console': 'error',
