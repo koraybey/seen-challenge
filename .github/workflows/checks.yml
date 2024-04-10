@@ -1,4 +1,4 @@
-name: Checks
+name: checks
 on:
     pull_request:
 concurrency:
@@ -7,7 +7,7 @@ concurrency:
 jobs:
     typescript:
         container: node:lts-alpine3.18
-        name: Check TypeScript
+        name: types
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -33,7 +33,7 @@ jobs:
               run: yarn lint
     test:
         container: node:lts-alpine3.18
-        name: Tests
+        name: tests
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
