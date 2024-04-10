@@ -27,8 +27,8 @@ const onGetRelatedCustomers = async (
     }>,
     reply: FastifyReply
 ) => {
-    const relatedCustomers = getRelatedCustomersData(
-        Number(request.params.customerId)
+    const relatedCustomers = await getRelatedCustomersData(
+        request.params.customerId
     )
     if (!relatedCustomers) {
         return reply.internalServerError()

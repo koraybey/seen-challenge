@@ -11,5 +11,5 @@ export const tsup: Options = {
     entryPoints: ['src/index.ts'],
     watch: environment === 'development',
     target: 'es2022',
-    entry: ['src/**/*.ts'],
+    entry: ['src/**/*.ts', '!src/**/*.mock.*', '!src/**/*.test.*'],
 }

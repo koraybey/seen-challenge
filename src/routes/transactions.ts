@@ -37,7 +37,7 @@ const onGetTransactions = async (
     }>,
     reply: FastifyReply
 ) => {
-    const transactions = getTransactionsData(Number(request.params.customerId))
+    const transactions = await getTransactionsData(request.params.customerId)
     if (!transactions) {
         return reply.internalServerError()
     }
