@@ -38,6 +38,8 @@ const transactionType = z.enum([
     'FEE',
 ])
 
+export type TransactionType = z.infer<typeof transactionType>
+
 /**
  *
  * @remark Transaction lifecycle
@@ -131,12 +133,11 @@ export type AggregatedTransaction = z.infer<typeof aggregatedTransactionSchema>
  * Money laundering: Customer sends money in and out immediately, transacts with high-risk entities or exclusively uses payment apps without POS transactions using credit card.
  *
  */
-export const relatedCustomerSchema = z.array(
-    z.object({
-        relatedCustomers: customerId.optional(),
-        relationType: z.string().optional(),
-    })
-)
+export const relatedCustomerSchema = z.object({
+    relatedCustomerId: customerId.optional(),
+    relationType: transactionType,
+})
+
 export const relatedCustomerArraySchema = z.array(relatedCustomerSchema)
 export type RelatedCustomer = z.infer<typeof relatedCustomerSchema>
 

@@ -52,18 +52,16 @@ const mapTimeline = (data: Transaction) => {
     const {
         transactionStatus: status,
         transactionDate: createdAt,
-        // amount,
-        ...rest // TODO Remove
+        amount,
     } = data
     return {
         status,
         createdAt,
-        // amount,
-        ...rest, // TODO Remove
+        amount,
     }
 }
 
-export const getAggregatedTransactions = (customerId?: CustomerId) =>
+export const getTransactionsData = (customerId?: CustomerId) =>
     R.compose(
         R.map(createNewTransactionObject),
         R.collectBy(R.prop('authorizationCode')),

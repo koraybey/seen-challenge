@@ -2,16 +2,16 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { getAggregatedTransactions } from '../data/transactions.js'
+import { getTransactionsData } from '../data/transactions.js'
 import {
     aggregatedTransactionsArraySchema,
     customerId,
     Transaction,
 } from '../schema.js'
 
-const getTransactionsByCustomerId: FastifyPluginAsync = async (f) => {
+const getTransactionsByCustomerId: FastifyPluginAsync = async (server) => {
     await Promise.all([
-        f.get<{
+        server.get<{
             Reply: Transaction[]
             Params: { customerId: z.infer<typeof customerId> }
         }>('/transactions/:customerId', {
@@ -20,43 +20,28 @@ const getTransactionsByCustomerId: FastifyPluginAsync = async (f) => {
                     200: zodToJsonSchema(aggregatedTransactionsArraySchema),
                 },
             },
-            handler: onGetTransactionsByCustomerId,
+            handler: onGetTransactions,
         }),
-        f.get<{
+        server.get<{
             Reply: Transaction[]
             Params: { customerId: z.infer<typeof customerId> }
         }>('/transactions', {
-            handler: onGetTransactionsByCustomerId2,
+            handler: onGetTransactions,
         }),
     ])
 }
 
-const onGetTransactionsByCustomerId = async (
+const onGetTransactions = async (
     request: FastifyRequest<{
         Params: { customerId?: z.infer<typeof customerId> }
     }>,
     reply: FastifyReply
 ) => {
-    const aggregatedTransactions = getAggregatedTransactions(
-        Number(request.params.customerId)
-    )
-    if (!aggregatedTransactions) {
+    const transactions = getTransactionsData(Number(request.params.customerId))
+    if (!transactions) {
         return reply.internalServerError()
     }
-    void reply.send(aggregatedTransactions)
-}
-
-const onGetTransactionsByCustomerId2 = async (
-    _request: FastifyRequest<{
-        Params: { customerId?: z.infer<typeof customerId> }
-    }>,
-    reply: FastifyReply
-) => {
-    const aggregatedTransactions = getAggregatedTransactions()
-    if (!aggregatedTransactions) {
-        return reply.internalServerError()
-    }
-    void reply.send(aggregatedTransactions)
+    void reply.send(transactions)
 }
 
 export default getTransactionsByCustomerId
