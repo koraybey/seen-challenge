@@ -1,0 +1,46 @@
+name: Checks
+on:
+    pull_request:
+concurrency:
+    group: checks-${{ github.ref }}
+    cancel-in-progress: true
+jobs:
+    typescript:
+        container: node:lts-alpine3.18
+        name: Check TypeScript
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: buildjet/setup-node@v3
+              with:
+                  cache: 'yarn'
+            - name: prepare
+              run: yarn
+            - name: check typescript
+              run: yarn tsc
+    lint:
+        container: node:lts-alpine3.18
+        name: eslint
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: buildjet/setup-node@v3
+              with:
+                  cache: 'yarn'
+            - name: prepare
+              run: yarn
+            - name: eslint
+              run: yarn lint
+    test:
+        container: node:lts-alpine3.18
+        name: Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: buildjet/setup-node@v3
+              with:
+                  cache: 'yarn'
+            - name: prepare
+              run: yarn
+            - name: test
+              run: yarn test

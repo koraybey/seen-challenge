@@ -7,6 +7,7 @@
     "type": "module",
     "scripts": {
         "tsc": "tsc",
+        "lint": "eslint .",
         "test": "jest",
         "build": "tsup",
         "watch": "tsup --watch",
