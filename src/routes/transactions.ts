@@ -1,30 +1,27 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
-import { z } from 'zod'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { getTransactionsData } from '../data/transactions.js'
-import {
-    aggregatedTransactionsArraySchema,
-    customerId,
-    Transaction,
-} from '../schema.js'
+import { getTransactionsFromSource } from '../data.js'
+import { aggregateTransactions } from '../handlers/transactions.js'
+import { aggregatedTransactionsRecord } from '../model.js'
+import { AggregatedTransaction, CustomerId } from '../types.js'
 
-const getTransactionsByCustomerId: FastifyPluginAsync = async (server) => {
+const getTransactions: FastifyPluginAsync = async (server) => {
     await Promise.all([
         server.get<{
-            Reply: Transaction[]
-            Params: { customerId: z.infer<typeof customerId> }
+            Reply: AggregatedTransaction[]
+            Params: { customerId: CustomerId }
         }>('/transactions/:customerId', {
             schema: {
                 response: {
-                    200: zodToJsonSchema(aggregatedTransactionsArraySchema),
+                    200: zodToJsonSchema(aggregatedTransactionsRecord),
                 },
             },
             handler: onGetTransactions,
         }),
         server.get<{
-            Reply: Transaction[]
-            Params: { customerId: z.infer<typeof customerId> }
+            Reply: AggregatedTransaction[]
+            Params: { customerId: CustomerId }
         }>('/transactions', {
             handler: onGetTransactions,
         }),
@@ -33,15 +30,22 @@ const getTransactionsByCustomerId: FastifyPluginAsync = async (server) => {
 
 const onGetTransactions = async (
     request: FastifyRequest<{
-        Params: { customerId?: z.infer<typeof customerId> }
+        Params: { customerId?: CustomerId }
     }>,
     reply: FastifyReply
 ) => {
-    const transactions = await getTransactionsData(request.params.customerId)
-    if (!transactions) {
-        return reply.internalServerError()
+    const customerId = request.params.customerId
+    if (!customerId) {
+        return reply.badRequest('customerId is required.')
     }
-    void reply.send(transactions)
+    const transactions = await getTransactionsFromSource()
+    const aggregatedTransactions = aggregateTransactions(
+        transactions,
+        customerId
+    )
+    if (!aggregatedTransactions) return reply.internalServerError()
+
+    void reply.send(aggregatedTransactions)
 }
 
-export default getTransactionsByCustomerId
+export default getTransactions

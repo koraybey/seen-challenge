@@ -1,4 +1,4 @@
-// import * as R from 'ramda'
+import { parseISO } from 'date-fns'
 import { z } from 'zod'
 
 // Using Zod because:
@@ -27,7 +27,7 @@ import { z } from 'zod'
  * FEE: Certain transactions incur an additional fee. MAY or MAY NOT originate from the application.
  *
  */
-const transactionType = z.enum([
+const transactionTypeList = [
     'ACH_INCOMING',
     'ACH_OUTGOING',
     'WIRE_INCOMING',
@@ -36,9 +36,9 @@ const transactionType = z.enum([
     'P2P_RECEIVE',
     'POS',
     'FEE',
-])
+] as const
 
-export type TransactionType = z.infer<typeof transactionType>
+const transactionType = z.enum(transactionTypeList)
 
 /**
  *
@@ -59,8 +59,10 @@ const authorizationCode = z
 
 // Sequential IDs pose security risk. In production, I would use an UUID or a hash value
 const transactionId = z.number()
+const customerId = z.number()
 
-const description = z.string().max(255, 'Transaction description is too long.') // Assuming description contains name of the entity making the transaction.
+// Assuming description contains name of the entity making the transaction.
+const description = z.string().max(255, 'Transaction description is too long.')
 
 // Assuming any inbound and outbound transaction amount is capped to 100_000 units.
 const amount = z
@@ -73,15 +75,12 @@ const metadata = z.object({
     deviceId: z.string().optional(),
 })
 
-export const dateTimeWithOffset = z.string().datetime({
+const dateTimeWithOffset = z.string().datetime({
     offset: true,
     message: 'Transaction date must be ISO 8601 with the offset.',
 })
-// Sequential IDs pose security risk. In production, I would use an UUID or a hash value
-export const customerId = z.number()
-export type CustomerId = z.infer<typeof customerId>
 
-export const transactionObjectSchema = z.object({
+const transaction = z.object({
     transactionId,
     authorizationCode,
     transactionDate: dateTimeWithOffset,
@@ -92,33 +91,47 @@ export const transactionObjectSchema = z.object({
     amount,
     metadata,
 })
-export const transactionArraySchema = z.array(transactionObjectSchema)
-export type Transaction = z.infer<typeof transactionObjectSchema>
+const transactionRecord = z.array(transaction)
 
-const timelineObjectSchema = z.object({
+const timeline = z.object({
     createdAt: dateTimeWithOffset,
     status: transactionStatus,
     amount,
 })
-const timelineArraySchema = z.array(timelineObjectSchema)
-export type Timeline = z.infer<typeof timelineObjectSchema>
+const timelineRecord = z.array(timeline)
 
-export const aggregatedTransactionSchema = z.object({
-    createdAt: dateTimeWithOffset,
-    updatedAt: dateTimeWithOffset.optional(),
-    transactionId, // First recorded transaction id
-    authorizationCode,
-    status: transactionStatus,
-    description,
-    transactionType,
-    metadata,
-    timeline: timelineArraySchema,
-})
-export const aggregatedTransactionsArraySchema = z.array(
-    aggregatedTransactionSchema
-)
+const aggregatedTransaction = z
+    .object({
+        createdAt: dateTimeWithOffset,
+        updatedAt: dateTimeWithOffset.optional(),
+        customerId,
+        transactionId, // First recorded transaction id
+        authorizationCode,
+        status: transactionStatus,
+        description,
+        transactionType,
+        metadata,
+        timeline: timelineRecord,
+    })
+    .superRefine((transaction, context) => {
+        // updatedAt date must be older than createdAt date
+        if (
+            transaction.updatedAt &&
+            parseISO(transaction.createdAt).getTime() >=
+                parseISO(transaction.updatedAt).getTime()
+        ) {
+            context.addIssue({
+                code: z.ZodIssueCode.invalid_date,
+                message:
+                    'createdAt and updatedAt does not respect timeline order.',
+            })
+        }
+        // TODO Transaction timeline timestamps and status respect transaction lifecycle order
+        // TODO Nested latest transaction data from the timeline matches the parent transaction data
+        // TODO Validate amounts based on transactionType (e.g. 'RETURN' cannot be a negative value)
+    })
 
-export type AggregatedTransaction = z.infer<typeof aggregatedTransactionSchema>
+const aggregatedTransactionsRecord = z.array(aggregatedTransaction)
 
 /**
  *
@@ -133,45 +146,28 @@ export type AggregatedTransaction = z.infer<typeof aggregatedTransactionSchema>
  * Money laundering: Customer sends money in and out immediately, transacts with high-risk entities or exclusively uses payment apps without POS transactions using credit card.
  *
  */
-export const relatedCustomerSchema = z.object({
-    relatedCustomerId: customerId.optional(),
-    relationType: transactionType,
+const relationType = z.enum([...transactionTypeList, 'DEVICE'])
+
+const relatedCustomer = z.object({
+    customerId,
+    relatedCustomerId: customerId,
+    relationType,
 })
 
-export const relatedCustomerArraySchema = z.array(relatedCustomerSchema)
-export type RelatedCustomer = z.infer<typeof relatedCustomerSchema>
+const relatedCustomerRecord = z.array(
+    relatedCustomer.omit({ customerId: true })
+)
 
-// This function performs validation based on transactionStatus
-// 1) Checks for duplicates
-// 2) Checks for unknown lifecycle patterns
-// 3) Validates the order of transactions by checking the timestamp
-// const validationsRelatedToTransactionStatus = (
-//     transaction: AggregatedTransaction,
-//     context: z.RefinementCtx
-// ) => {
-//     const { timeline } = transaction
-
-//     R.cond([
-//         [
-//             R.compose(R.includes(['PROCESSING']), R.prop('status')),
-//             () => zodIssueInvalidTransactionLifecycle(context),
-//         ],
-//         [
-//             R.compose(R.includes(['SETTLED']), R.prop('status')),
-//             () => zodIssueInvalidTransactionLifecycle(context),
-//         ],
-//         [
-//             R.compose(
-//                 R.includes(['PROCESSING', 'SETTLED', 'RETURNED']),
-//                 R.prop('status')
-//             ),
-//             () => zodIssueInvalidTransactionLifecycle(context),
-//         ],
-//     ])(timeline)
-// }
-
-// const zodIssueInvalidTransactionLifecycle = (context: z.RefinementCtx) =>
-//     context.addIssue({
-//         code: z.ZodIssueCode.invalid_date,
-//         message: 'Invalid order detected in transaction lifecycle.',
-//     })
+export {
+    customerId,
+    relatedCustomer,
+    relatedCustomerRecord,
+    transaction,
+    transactionRecord,
+    transactionType,
+    aggregatedTransaction,
+    aggregatedTransactionsRecord,
+    dateTimeWithOffset,
+    timeline,
+    timelineRecord,
+}
