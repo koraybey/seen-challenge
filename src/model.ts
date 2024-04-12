@@ -1,4 +1,5 @@
 import { parseISO } from 'date-fns'
+import * as R from 'ramda'
 import { z } from 'zod'
 
 // Using Zod because:
@@ -126,7 +127,16 @@ const aggregatedTransaction = z
                     'createdAt and updatedAt does not respect timeline order.',
             })
         }
-        // TODO Transaction timeline timestamps and status respect transaction lifecycle order
+        if (
+            transaction &&
+            transaction.status !== R.last(transaction.timeline)?.status
+        ) {
+            context.addIssue({
+                code: z.ZodIssueCode.custom,
+                message:
+                    'Transaction status is not equal to the status of the latest transaction from the transaction lifecycle.',
+            })
+        }
         // TODO Nested latest transaction data from the timeline matches the parent transaction data
         // TODO Validate amounts based on transactionType (e.g. 'RETURN' cannot be a negative value)
     })

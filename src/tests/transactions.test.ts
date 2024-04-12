@@ -70,12 +70,11 @@ test('Aggregate transactions by authorizationCode', () => {
         }),
     ]
     const parsedTransactions = transactionRecord.parse(transactions)
-    const aggregatedTransactions = mapTransactions(parsedTransactions)
 
     const expectedTransactions = [
         {
-            ...transactions[0],
-            status: transactions[2].transactionStatus,
+            ...parsedTransactions[0],
+            status: parsedTransactions[2].transactionStatus,
             createdAt: parseISODatetime(addHours(now, 0)),
             updatedAt: parseISODatetime(addHours(now, 2)),
             timeline: [
@@ -94,8 +93,8 @@ test('Aggregate transactions by authorizationCode', () => {
             ],
         },
         {
-            ...transactions[3],
-            status: transactions[3].transactionStatus,
+            ...parsedTransactions[3],
+            status: parsedTransactions[3].transactionStatus,
             createdAt: parseISODatetime(addHours(now, 3)),
             timeline: [
                 createTimeline({
@@ -105,49 +104,82 @@ test('Aggregate transactions by authorizationCode', () => {
             ],
         },
     ]
+
+    const aggregatedTransactions = mapTransactions(parsedTransactions)
     const parsedExpectedTransactions =
         aggregatedTransactionsRecord.parse(expectedTransactions)
+    const parsedAggregatedTransactions = aggregatedTransactionsRecord.parse(
+        aggregatedTransactions
+    )
 
-    expect(aggregatedTransactions).toEqual(parsedExpectedTransactions)
+    expect(parsedAggregatedTransactions).toEqual(parsedExpectedTransactions)
 })
 
-test('Invalid timestamp order', () => {
+describe('Edge case Zod validations', () => {
     const now = Date.now()
     const transactions = [
         createTransaction({
             transactionId: 1,
             authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 1)),
+            transactionDate: parseISODatetime(addHours(now, 0)),
+            transactionStatus: 'PENDING',
         }),
         createTransaction({
             transactionId: 2,
             authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 0)),
+            transactionDate: parseISODatetime(addHours(now, 1)),
+            transactionStatus: 'SETTLED',
         }),
     ]
     const parsedTransactions = transactionRecord.parse(transactions)
-    const aggregatedTransactions = mapTransactions(parsedTransactions)
-
-    const expectedTransactions = [
-        {
-            ...transactions[0],
-            status: transactions[0].transactionStatus,
-            createdAt: parseISODatetime(addHours(now, 0)),
-            updatedAt: parseISODatetime(addHours(now, 1)),
-            timeline: [
-                createTimeline({
-                    createdAt: parseISODatetime(addHours(now, 0)),
-                    status: 'PENDING',
-                }),
-                createTimeline({
-                    createdAt: parseISODatetime(addHours(now, 1)),
-                    status: 'SETTLED',
-                }),
-            ],
-        },
-    ]
-    const parsedExpectedTransactions =
-        aggregatedTransactionsRecord.parse(expectedTransactions)
-
-    expect(aggregatedTransactions).not.toEqual(parsedExpectedTransactions)
+    test('ZodError when createdAt is older than updatedAt', async () => {
+        const expectedTransactions = [
+            {
+                ...parsedTransactions[0],
+                status: parsedTransactions[1].transactionStatus,
+                createdAt: parseISODatetime(addHours(now, 1)),
+                updatedAt: parseISODatetime(addHours(now, 1)),
+                timeline: [
+                    createTimeline({
+                        createdAt: parseISODatetime(addHours(now, 0)),
+                        status: 'PENDING',
+                    }),
+                    createTimeline({
+                        createdAt: parseISODatetime(addHours(now, 1)),
+                        status: 'SETTLED',
+                    }),
+                ],
+            },
+        ]
+        await expect(
+            aggregatedTransactionsRecord.parseAsync(expectedTransactions)
+        ).rejects.toThrow(
+            'createdAt and updatedAt does not respect timeline order.'
+        )
+    })
+    test('ZodError when transactionId is not equal to transactionId of the latest transaction in the lifecycle', async () => {
+        const expectedTransactions = [
+            {
+                ...parsedTransactions[0],
+                status: parsedTransactions[0].transactionStatus,
+                createdAt: parseISODatetime(addHours(now, 0)),
+                updatedAt: parseISODatetime(addHours(now, 1)),
+                timeline: [
+                    createTimeline({
+                        createdAt: parseISODatetime(addHours(now, 0)),
+                        status: 'PENDING',
+                    }),
+                    createTimeline({
+                        createdAt: parseISODatetime(addHours(now, 1)),
+                        status: 'SETTLED',
+                    }),
+                ],
+            },
+        ]
+        await expect(
+            aggregatedTransactionsRecord.parseAsync(expectedTransactions)
+        ).rejects.toThrow(
+            'Transaction status is not equal to the status of the latest transaction from the transaction lifecycle.'
+        )
+    })
 })
