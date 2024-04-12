@@ -6,7 +6,7 @@ This project contains the solutions to the back-end challenge provided by [Seen]
 
 | Component         | Library                                                                                               |
 | :---------------- | :---------------------------------------------------------------------------------------------------- |
-| Web server        | [actix-web](https://fastify.dev/)                                                                     |
+| Web server        | [fastify](https://fastify.dev/)                                                                       |
 | Schema validation | [Zod](https://zod.dev/) and [zod-to-json-schema](https://github.com/StefanTerdell/zod-to-json-schema) |
 | Tests             | [Jest](https://jestjs.io/) and [supertest](https://github.com/ladjs/supertest)                        |
 | Compiler          | [tsup](https://tsup.egoist.dev/) and [Babel](https://babeljs.io/)                                     |
@@ -18,9 +18,9 @@ This project uses [Node.js](https://nodejs.org/en) and [Yarn](https://classic.ya
 Install dependencies, build and start the server by running:
 
 ```shell
-yarn # npx i
-yarn build # npx build
-yarn start # npx start
+yarn
+yarn build
+yarn start
 ```
 
 Project also contains a `.tool-versions` file which specifies node runtime for [asdf](https://asdf-vm.com/).
@@ -36,7 +36,7 @@ I leave it to the reader to decide what works the best for their environment.
 
 ## Checks, tests and code quality
 
--   Run `yarn test` or `npm test` to compile and run tests
+-   Run `yarn test` to compile and run tests
 -   Run `yarn tsc` for TypeScript compiler (emitting is currently disabled in favour of `tsup` compiler)
 -   Run `yarn lint` for linting
 
