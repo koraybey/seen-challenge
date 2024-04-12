@@ -1,20 +1,28 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
-import { z } from 'zod'
+import * as R from 'ramda'
+import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { getRelatedCustomersData } from '../data/related-customers.js'
-import { customerId, Transaction } from '../schema.js'
+import { getTransactionsFromSource } from '../data.js'
+import { mapCustomerRelations } from '../handlers/related-customers.js'
+import { relatedCustomerRecord } from '../model.js'
+import { CustomerId, RelatedCustomer } from '../types.js'
 
-const getRelatedCustomers: FastifyPluginAsync = async (server) => {
+const getCustomers: FastifyPluginAsync = async (server) => {
     await Promise.all([
         server.get<{
-            Reply: Transaction[]
-            Params: { customerId: z.infer<typeof customerId> }
+            Reply: RelatedCustomer[]
+            Params: { customerId: CustomerId }
         }>('/relatedCustomers/:customerId', {
             handler: onGetRelatedCustomers,
+            schema: {
+                response: {
+                    200: zodToJsonSchema(relatedCustomerRecord),
+                },
+            },
         }),
         server.get<{
-            Reply: Transaction[]
-            Params: { customerId: z.infer<typeof customerId> }
+            Reply: RelatedCustomer[]
+            Params: { customerId: CustomerId }
         }>('/relatedCustomers', {
             handler: onGetRelatedCustomers,
         }),
@@ -23,17 +31,23 @@ const getRelatedCustomers: FastifyPluginAsync = async (server) => {
 
 const onGetRelatedCustomers = async (
     request: FastifyRequest<{
-        Params: { customerId?: z.infer<typeof customerId> }
+        Params: { customerId?: CustomerId }
     }>,
     reply: FastifyReply
 ) => {
-    const relatedCustomers = await getRelatedCustomersData(
-        request.params.customerId
+    const customerId = request.params.customerId
+    if (!customerId) return reply.badRequest('customerId is required.')
+
+    const transactions = await getTransactionsFromSource()
+    const relatedCustomers = mapCustomerRelations(transactions, customerId)
+    if (!relatedCustomers) return reply.internalServerError()
+
+    void reply.send(
+        R.map<RelatedCustomer, Partial<RelatedCustomer>>(
+            R.omit(['customerId']),
+            relatedCustomers
+        )
     )
-    if (!relatedCustomers) {
-        return reply.internalServerError()
-    }
-    void reply.send(relatedCustomers)
 }
 
-export default getRelatedCustomers
+export default getCustomers

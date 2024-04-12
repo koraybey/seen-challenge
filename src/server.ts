@@ -11,12 +11,6 @@ const server = async () => {
             },
         },
     })
-    app.listen({ port: 3000 }, (error) => {
-        if (error) {
-            app.log.error(error)
-            exit(1)
-        }
-    })
     return app
 }
 

@@ -35,6 +35,13 @@ module.exports = {
                 tsconfigRootDir: __dirname,
             },
         },
+        {
+            files: ['src/**/*.mock.*', 'src/**/*.test.*'],
+            extends: ['plugin:jest/recommended'],
+            env: {
+                jest: true,
+            },
+        },
     ],
     ignorePatterns: ['dist', 'lib'],
     rules: {
