@@ -51,7 +51,7 @@ const onGetTransactions = async (
 
     if (!transactionsByCustomerId) return reply.notFound()
 
-    void reply.send(aggregatedTransactions)
+    void reply.send(transactionsByCustomerId)
 }
 
 export default getTransactions
