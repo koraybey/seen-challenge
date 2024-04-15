@@ -68,7 +68,7 @@ describe('/transactions', () => {
 
         await supertest(app.server)
             .get('/transactions/10')
-            .expect(404)
+            .expect([])
             .expect('Content-Type', 'application/json; charset=utf-8')
 
         await app.close()

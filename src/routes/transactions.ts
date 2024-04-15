@@ -49,7 +49,7 @@ const onGetTransactions = async (
         R.prop(customerId)
     )(aggregatedTransactions)
 
-    if (!transactionsByCustomerId) return reply.notFound()
+    if (!transactionsByCustomerId) return []
 
     void reply.send(transactionsByCustomerId)
 }

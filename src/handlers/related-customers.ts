@@ -42,8 +42,6 @@ export const mapRelationsByDeviceId = (
                 relatedCustomerId: R.prop('customerId'),
                 relationType: R.always('DEVICE'),
                 customerId: R.always(transaction.customerId),
-                relatedtransactionId: R.prop('transactionId'),
-                transactionId: R.always(transaction.transactionId),
             })
         )(
             R.filter(
@@ -122,10 +120,8 @@ export const mapRelationsByRelatedTransactionId = (
         if (targetTransaction)
             return {
                 customerId: targetTransaction.customerId,
-                transactionId: targetTransaction.transactionId,
                 relatedCustomerId,
                 relationType: targetTransaction.transactionType,
-                relatedTransactionId,
             }
     }
     return R.reject(R.isNil, R.map(findAndMapRelatedTransactions)(transactions))

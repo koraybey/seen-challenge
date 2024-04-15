@@ -175,17 +175,13 @@ const relationType = z.enum([...transactionTypeList, 'DEVICE'])
 
 const relatedCustomer = z.object({
     customerId,
-    transactionId,
     relatedCustomerId: customerId,
     relationType,
-    relatedTransactionId: transactionId,
 })
 
 const relatedCustomerRecord = z.array(
     relatedCustomer.omit({
         customerId: true,
-        relatedTransactionId: true,
-        transactionId: true,
     })
 )
 

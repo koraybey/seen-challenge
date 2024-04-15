@@ -31,7 +31,7 @@ describe('/relatedCustomers', () => {
 
         await supertest(app.server)
             .get('/relatedCustomers/1')
-            .expect(404)
+            .expect([])
             .expect('Content-Type', 'application/json; charset=utf-8')
 
         await app.close()
@@ -191,30 +191,22 @@ describe('Fraud detection and relatedCustomers mapping functions', () => {
             {
                 customerId: 2,
                 relatedCustomerId: 1,
-                relatedTransactionId: 1,
                 relationType: 'P2P_RECEIVE',
-                transactionId: 2,
             },
             {
                 customerId: 1,
                 relatedCustomerId: 2,
-                relatedTransactionId: 2,
                 relationType: 'P2P_SEND',
-                transactionId: 1,
             },
             {
                 customerId: 5,
                 relatedCustomerId: 3,
-                relatedTransactionId: 3,
                 relationType: 'WIRE_INCOMING',
-                transactionId: 4,
             },
             {
                 customerId: 3,
                 relatedCustomerId: 5,
-                relatedTransactionId: 4,
                 relationType: 'WIRE_OUTGOING',
-                transactionId: 3,
             },
         ]
         expect(relatedCustomersByRelatedtransactionId).toEqual(

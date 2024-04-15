@@ -48,7 +48,7 @@ const onGetRelatedCustomers = async (
         R.prop(customerId)
     )(relatedCustomers)
 
-    if (!filterByCustomerId) return reply.notFound()
+    if (!filterByCustomerId) return []
 
     void reply.send(filterByCustomerId)
 }
