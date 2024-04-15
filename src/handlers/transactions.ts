@@ -3,11 +3,11 @@ import * as R from 'ramda'
 import { AggregatedTransaction, Transaction } from '../types.js'
 
 //
-// Aggregates transactions by customerId and authorizationCode.
-
-// Start by grouping transactions by customerId to avoid merging transactions with the same authorizationCode but different customerIds.
+// Aggregate transactions by customerId and authorizationCode.
+//
+// First, group transactions by customerId. Grouping with authorizationCode instead would result in a merge of transactions with different customerIds, as authorizationCode is not unique to customer.
 // Then, for each customerId, group transactions again, by authorizationCode. Result will represent the lifecycle of the transaction for each unique customer.
-// Finally, create an aggregatedTransaction object by mapping transactions to the timeline, and re-assigning property values to match the challenge expected result.
+// Finally, create an aggregated transaction object by mapping transactions to the timeline, and re-assigning property values to match the challenge expected result.
 //
 // Let's create an example transaction where:
 // - All transactions share the same authorizationCode, transactionType and customerId

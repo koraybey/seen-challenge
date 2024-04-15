@@ -79,7 +79,7 @@ describe('/transactions', () => {
         await app.ready()
 
         await supertest(app.server)
-            .get('/transactions/')
+            .get('/transactions')
             .expect(400)
             .expect('Content-Type', 'application/json; charset=utf-8')
 

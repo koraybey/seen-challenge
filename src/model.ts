@@ -125,7 +125,7 @@ const aggregatedTransaction = z
         // superRefine here is being used to provide custom validation logic.
         // related-customers-test.ts and transactions.test.ts contain tests to ensure refinements work and validation is enforced.
         if (!transaction) return
-        // Ensure status is equal to status of first transaction.
+        // Ensure status is equal to status of last transaction.
         if (transaction.status !== R.last(transaction.timeline)?.status)
             context.addIssue({
                 code: z.ZodIssueCode.invalid_date,

@@ -3,31 +3,32 @@ import * as R from 'ramda'
 import { RelatedCustomer, Transaction } from '../types.js'
 
 //
-// Establishes customer relations based on deviceId.
+// Establish customer relations based on deviceId.
 //
 // Find all accounts with the same deviceId.
-// Then, establish the relationship by mapping all the customerIds with the same deviceId to each customer.
+// Then, establish the relationship by mapping all the customerIds with the same deviceId to each other.
 //
 // Let's create an example transaction where:
 // - customerId 1, customerId 2, and customerId 3 use the same device.
 //
 // customerId                       1      | 2      | 3
-// metadata
-// ------------------------------------------------------
-//      deviceId                    ABC    | ABC    | ABC
+// ---------------------------------------------------------
+//      metadata
+// ---------------------------------------------------------
+//           deviceId               ABC    | ABC    | ABC
 //
 // When piped to mapRelationsByDeviceId, expected output is:
 //
-// customerId                       1      | 2      | 3
+// ---------------------------------------------------------
 // relatedCustomers
 // ---------------------------------------------------------
-//      relatedCustomerId           2      | 1      | 2
+//      relatedCustomerId           2      | 3      | 1
 //      relationType                DEVICE | DEVICE | DEVICE
 // ---------------------------------------------------------
-//      relatedCustomerId           3      | 2      | 2
+//      relatedCustomerId           3      | 1      | 2
 //      relationType                DEVICE | DEVICE | DEVICE
 //
-// related-customers.test.ts includes tests similar to example above.
+// related-customers.test.ts includes tests containing examples.
 //
 export const mapRelationsByDeviceId = (
     transactions: Transaction[]
@@ -72,7 +73,7 @@ export const mapRelationsByDeviceId = (
 }
 
 //
-// Establishes customer relations based on relatedTransactionId and transactionId.
+// Establish customer relations based on relatedTransactionId and transactionId.
 //
 // Most transactions include a relatedTransactionId.
 // Find related transaction by relatedTransactionId and compare it to the origin transaction that contains the relatedTransactionId.
@@ -86,19 +87,20 @@ export const mapRelationsByDeviceId = (
 // customerId                       1        | 2
 // transactionType                  P2P_SEND | P2P_RECEIVE
 // transactionId                    1        | 2
+// -------------------------------------------------------
 // metadata
 // -------------------------------------------------------
 //      relatedTransactionId        2        | 1
 //
 // When piped to mapRelationsByRelatedTransactionId, expected output is:
 //
-// customerId                       1        | 2
+// -------------------------------------------------------
 // relatedCustomers
 // -------------------------------------------------------
 //      relationType                P2P_SEND | P2P_RECEIVE
 //      relatedCustomerId           2        | 1
 //
-// related-customers.test.ts includes tests similar to example above.
+// related-customers.test.ts includes tests containing examples.
 //
 export const mapRelationsByRelatedTransactionId = (
     transactions: Transaction[]
@@ -110,11 +112,11 @@ export const mapRelationsByRelatedTransactionId = (
     }: Transaction): RelatedCustomer | undefined => {
         const targetTransaction = transactions.find(
             (d) =>
-                // Find the target transaction by comparing source relatedTransactionId to destination transactionId.
+                // Find the target transaction by comparing origin relatedTransactionId to destination transactionId.
                 d.transactionId === metadata?.relatedTransactionId &&
-                // Ensure transaction belongs to a different user by checking customerIds.
+                // Transaction must belong to different users, check customerIds.
                 d.customerId !== relatedCustomerId &&
-                // Ensure source transaction relatedTransactionId is equal to relatedTransactionId of target transaction.
+                // Origin transaction relatedTransactionId must be equal to relatedTransactionId of target transaction.
                 d.metadata.relatedTransactionId === relatedTransactionId
         )
         if (targetTransaction)
