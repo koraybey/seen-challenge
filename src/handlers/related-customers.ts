@@ -57,7 +57,7 @@ export const mapRelationsByRelatedTransactionId = (
     }: Transaction): RelatedCustomer | undefined => {
         const targetTransaction = transactions.find(
             (d) =>
-                // d.metadata.relatedTransactionId === relatedTransactionId &&
+                d.metadata.relatedTransactionId === relatedTransactionId &&
                 d.customerId !== relatedCustomerId &&
                 d.transactionId === metadata?.relatedTransactionId &&
                 parseISO(d.transactionDate).getTime() >=
