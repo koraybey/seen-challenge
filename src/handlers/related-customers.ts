@@ -1,3 +1,4 @@
+import { addHours, parseISO } from 'date-fns'
 import * as R from 'ramda'
 
 import { CustomerId, RelatedCustomer, Transaction } from '../types.js'
@@ -51,17 +52,23 @@ export const mapRelationsByRelatedTransactionId = (
     const findAndMapRelatedTransactions = ({
         customerId: relatedCustomerId,
         metadata,
+        transactionId: relatedTransactionId,
+        transactionDate,
     }: Transaction): RelatedCustomer | undefined => {
         const targetTransaction = transactions.find(
             (d) =>
                 d.customerId !== relatedCustomerId &&
-                d.transactionId === metadata?.relatedTransactionId
+                d.transactionId === metadata?.relatedTransactionId &&
+                parseISO(d.transactionDate).getTime() >=
+                    addHours(parseISO(transactionDate), -1).getTime()
         )
         if (targetTransaction)
             return {
                 customerId: targetTransaction.customerId,
+                transactionId: targetTransaction.transactionId,
                 relatedCustomerId,
                 relationType: targetTransaction.transactionType,
+                relatedTransactionId,
             }
     }
     return R.reject(

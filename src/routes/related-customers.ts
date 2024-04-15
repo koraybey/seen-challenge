@@ -1,5 +1,4 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
-import * as R from 'ramda'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { getTransactionsFromSource } from '../data.js'
@@ -42,12 +41,7 @@ const onGetRelatedCustomers = async (
     const relatedCustomers = mapCustomerRelations(transactions, customerId)
     if (!relatedCustomers) return reply.internalServerError()
 
-    void reply.send(
-        R.map<RelatedCustomer, Partial<RelatedCustomer>>(
-            R.omit(['customerId']),
-            relatedCustomers
-        )
-    )
+    void reply.send(relatedCustomers)
 }
 
 export default getCustomers
