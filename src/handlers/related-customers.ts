@@ -1,8 +1,34 @@
-import { addHours, parseISO } from 'date-fns'
 import * as R from 'ramda'
 
 import { RelatedCustomer, Transaction } from '../types.js'
 
+//
+// Establishes customer relations based on deviceId.
+//
+// Find all accounts with the same deviceId.
+// Then, establish the relationship by mapping all the customerIds with the same deviceId to each customer.
+//
+// Let's create an example transaction where:
+// - customerId 1, customerId 2, and customerId 3 use the same device.
+//
+// customerId                       1      | 2      | 3
+// metadata
+// ------------------------------------------------------
+//      deviceId                    ABC    | ABC    | ABC
+//
+// When piped to mapRelationsByDeviceId, expected output is:
+//
+// customerId                       1      | 2      | 3
+// relatedCustomers
+// ---------------------------------------------------------
+//      relatedCustomerId           2      | 1      | 2
+//      relationType                DEVICE | DEVICE | DEVICE
+// ---------------------------------------------------------
+//      relatedCustomerId           3      | 2      | 2
+//      relationType                DEVICE | DEVICE | DEVICE
+//
+// related-customers.test.ts includes tests similar to example above.
+//
 export const mapRelationsByDeviceId = (
     transactions: Transaction[]
 ): RelatedCustomer[] => {
@@ -16,6 +42,8 @@ export const mapRelationsByDeviceId = (
                 relatedCustomerId: R.prop('customerId'),
                 relationType: R.always('DEVICE'),
                 customerId: R.always(transaction.customerId),
+                relatedtransactionId: R.prop('transactionId'),
+                transactionId: R.always(transaction.transactionId),
             })
         )(
             R.filter(
@@ -38,7 +66,6 @@ export const mapRelationsByDeviceId = (
             R.pipe(
                 R.filter(R.pathSatisfies(R.isNotNil, ['metadata', 'deviceId'])),
                 R.collectBy(R.pathOr(-1, ['metadata', 'deviceId'])),
-                R.reject(R.compose(R.gte(1), R.length)),
                 R.flatten,
                 R.map(flagAccountsWithSameDevice)
             )(transactions)
@@ -46,6 +73,35 @@ export const mapRelationsByDeviceId = (
     )
 }
 
+//
+// Establishes customer relations based on relatedTransactionId and transactionId.
+//
+// Most transactions include a relatedTransactionId.
+// Find related transaction by relatedTransactionId and compare it to the origin transaction that contains the relatedTransactionId.
+// If customerIds are not equal, then transactions belong to different accounts.
+// In that case, it is safe to assume these users are related by transaction.
+//
+// Let's create an example transaction where:
+// - customerId 1 sends funds to customerId 2, hence customerId 1 is related to customerId 2 for sending funds (P2P_SEND)
+// - customerId 2 receives funds from customerId 1, hence customerId 2 is related to customerId 1 for receiving funds (P2P_RECEIVE)
+//
+// customerId                       1        | 2
+// transactionType                  P2P_SEND | P2P_RECEIVE
+// transactionId                    1        | 2
+// metadata
+// -------------------------------------------------------
+//      relatedTransactionId        2        | 1
+//
+// When piped to mapRelationsByRelatedTransactionId, expected output is:
+//
+// customerId                       1        | 2
+// relatedCustomers
+// -------------------------------------------------------
+//      relationType                P2P_SEND | P2P_RECEIVE
+//      relatedCustomerId           2        | 1
+//
+// related-customers.test.ts includes tests similar to example above.
+//
 export const mapRelationsByRelatedTransactionId = (
     transactions: Transaction[]
 ): RelatedCustomer[] => {
@@ -53,15 +109,15 @@ export const mapRelationsByRelatedTransactionId = (
         customerId: relatedCustomerId,
         metadata,
         transactionId: relatedTransactionId,
-        transactionDate,
     }: Transaction): RelatedCustomer | undefined => {
         const targetTransaction = transactions.find(
             (d) =>
-                d.metadata.relatedTransactionId === relatedTransactionId &&
-                d.customerId !== relatedCustomerId &&
+                // Find the target transaction by comparing source relatedTransactionId to destination transactionId.
                 d.transactionId === metadata?.relatedTransactionId &&
-                parseISO(d.transactionDate).getTime() >=
-                    addHours(parseISO(transactionDate), -1).getTime()
+                // Ensure transaction belongs to a different user by checking customerIds.
+                d.customerId !== relatedCustomerId &&
+                // Ensure source transaction relatedTransactionId is equal to relatedTransactionId of target transaction.
+                d.metadata.relatedTransactionId === relatedTransactionId
         )
         if (targetTransaction)
             return {
@@ -72,18 +128,7 @@ export const mapRelationsByRelatedTransactionId = (
                 relatedTransactionId,
             }
     }
-    return R.reject(
-        R.isNil,
-        R.pipe(
-            R.filter(
-                R.pathSatisfies(R.isNotNil, [
-                    'metadata',
-                    'relatedTransactionId',
-                ])
-            ),
-            R.map(findAndMapRelatedTransactions)
-        )(transactions)
-    )
+    return R.reject(R.isNil, R.map(findAndMapRelatedTransactions)(transactions))
 }
 
 export const mapRelatedCustomers = (

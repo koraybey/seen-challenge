@@ -122,12 +122,16 @@ const aggregatedTransaction = z
         timeline: timelineRecord,
     })
     .superRefine((transaction, context) => {
+        // superRefine here is being used to provide custom validation logic.
+        // related-customers-test.ts and transactions.test.ts contain tests to ensure refinements work and validation is enforced.
         if (!transaction) return
+        // Ensure status is equal to status of first transaction.
         if (transaction.status !== R.last(transaction.timeline)?.status)
             context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[0],
             })
+        // Ensure createdAt cannot be older than updatedAt.
         if (
             transaction.updatedAt &&
             parseISO(transaction.createdAt).getTime() >=
@@ -137,11 +141,13 @@ const aggregatedTransaction = z
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[1],
             })
+        // Ensure createdAt is equal to transactionDate of first transaction.
         if (transaction.createdAt !== R.head(transaction.timeline)?.createdAt)
             context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[2],
             })
+        // Ensure updatedAt is equal to transactionDate of last transaction.
         if (!(transaction.timeline.length >= 2)) return
         if (transaction.updatedAt !== R.last(transaction.timeline)?.createdAt)
             context.addIssue({
@@ -154,7 +160,7 @@ const aggregatedTransactionsRecord = z.array(aggregatedTransaction)
 
 /**
  *
- * @remark Fraud signals
+ * @remark Establishing relations with fraud signals
  *
  * Fraud rings: Multiple customers transacting with an unique device.
  *

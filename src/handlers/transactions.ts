@@ -2,19 +2,38 @@ import * as R from 'ramda'
 
 import { AggregatedTransaction, Transaction } from '../types.js'
 
-const mapTimeline = (data: Transaction) => {
-    const {
-        transactionStatus: status,
-        transactionDate: createdAt,
-        amount,
-    } = data
-    return {
-        status,
-        createdAt,
-        amount,
-    }
-}
+//
+// Aggregates transactions by customerId and authorizationCode.
 
+// Start by grouping transactions by customerId to avoid merging transactions with the same authorizationCode but different customerIds.
+// Then, for each customerId, group transactions again, by authorizationCode. Result will represent the lifecycle of the transaction for each unique customer.
+// Finally, create an aggregatedTransaction object by mapping transactions to the timeline, and re-assigning property values to match the challenge expected result.
+//
+// Let's create an example transaction where:
+// - All transactions share the same authorizationCode, transactionType and customerId
+// - transactionId 1 transactionStatus is PENDING.
+// - transactionId 2 transactionStatus is SETTLED.
+//
+// transactionId                1         | 2
+// transactionStatus            PENDING   | SETTLED
+// transactionDate              Yesterday | Today
+//
+// When piped to aggregateTransactions, expected output is:
+//
+// transactionId                1
+// transactionStatus            SETTLED
+// createdAt                    Yesterday
+// updatedAt                    Today
+// timeline
+// -----------------------------------------------------
+//      status                  PENDING
+//      createdAt               Yesterday
+// -----------------------------------------------------
+//      status                  SETTLED
+//      createdAt               Today
+//
+// transactions.test.ts includes tests similar to example above.
+//
 export const aggregateTransactions = (
     transactions: Transaction[]
 ): AggregatedTransaction[] => {
@@ -37,6 +56,7 @@ export const aggregateTransactions = (
             } = last
             return {
                 createdAt,
+                // updatedAt property value is modified only if there are subsequent transactions in the lifecycle.
                 updatedAt: transaction.length === 1 ? undefined : updatedAt,
                 customerId,
                 transactionId,
@@ -44,6 +64,8 @@ export const aggregateTransactions = (
                 status,
                 description,
                 transactionType,
+                // I decided to follow the challenge instructions and return an empty metadata object.
+                // I would suggest merging metadata of each transaction to represent a list of all deviceIds and relatedTransactionIds belonging to the transaction lifecycle.
                 metadata: {},
                 timeline: R.map(mapTimeline, transaction),
             }
@@ -60,4 +82,17 @@ export const aggregateTransactions = (
             )(transactions)
         )
     )
+}
+
+const mapTimeline = (transaction: Transaction) => {
+    const {
+        transactionStatus: status,
+        transactionDate: createdAt,
+        amount,
+    } = transaction
+    return {
+        status,
+        createdAt,
+        amount,
+    }
 }
