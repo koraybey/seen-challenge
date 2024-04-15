@@ -58,17 +58,17 @@ Steps vary depending on the architecture. You may need to specify your architect
 
 ### /relatedCustomers/:customerId
 
-Retrieve related customers for each `customerId` by running
+Retrieve related customers for each `customerId`
 
 ```shell
-curl -H "Content-Type: application/json" -X GET localhost:3000relatedCustomers/3
+curl -H "Content-Type: application/json" -X GET localhost:3000/relatedCustomers/3
 ```
 
 _(In the challenge dataset, all customers from `relatedCustomers/3` to `relatedCustomers/7` are related.)_
 
 ### /transactions/:customerId
 
-Retrieve aggregated transactions for each `customerId` by running
+Retrieve aggregated transactions for each `customerId`
 
 ```shell
 curl -H "Content-Type: application/json" -X GET localhost:3000/transactions/1
