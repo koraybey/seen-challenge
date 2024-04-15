@@ -1,6 +1,6 @@
 import * as R from 'ramda'
 
-import { AggregatedTransaction, CustomerId, Transaction } from '../types.js'
+import { AggregatedTransaction, Transaction } from '../types.js'
 
 const mapTimeline = (data: Transaction) => {
     const {
@@ -15,7 +15,7 @@ const mapTimeline = (data: Transaction) => {
     }
 }
 
-export const mapTransactions = (
+export const aggregateTransactions = (
     transactions: Transaction[]
 ): AggregatedTransaction[] => {
     const createNewTransactionObject = R.compose(
@@ -48,7 +48,7 @@ export const mapTransactions = (
                 timeline: R.map(mapTimeline, transaction),
             }
         }),
-        R.collectBy(R.pathOr('', ['authorizationCode']))
+        R.collectBy(R.pathOr(-1, ['authorizationCode']))
     )
 
     return R.reject(
@@ -60,15 +60,4 @@ export const mapTransactions = (
             )(transactions)
         )
     )
-}
-
-export const aggregateTransactions = (
-    transactions: Transaction[],
-    customerId: CustomerId
-): AggregatedTransaction[] | undefined => {
-    const aggregatedTransactions = mapTransactions(transactions)
-    return R.pipe(
-        R.groupBy(R.propOr('undefined', 'customerId')),
-        R.prop(customerId)
-    )(aggregatedTransactions)
 }

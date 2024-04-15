@@ -4,7 +4,7 @@ import * as R from 'ramda'
 import supertest from 'supertest'
 
 import build from '../app.js'
-import { mapTransactions } from '../handlers/transactions.js'
+import { aggregateTransactions } from '../handlers/transactions.js'
 import {
     aggregatedTransactionsRecord,
     schemaError,
@@ -61,7 +61,18 @@ describe('/transactions', () => {
 
         await app.close()
     })
+    // eslint-disable-next-line jest/expect-expect
+    test('GET with a non-existent customerId', async () => {
+        const app = await build()
+        await app.ready()
 
+        await supertest(app.server)
+            .get('/transactions/10')
+            .expect(404)
+            .expect('Content-Type', 'application/json; charset=utf-8')
+
+        await app.close()
+    })
     // eslint-disable-next-line jest/expect-expect
     test('GET without a customerId', async () => {
         const app = await build()
@@ -115,7 +126,7 @@ describe('/transactions', () => {
             },
         ]
 
-        const aggregatedTransactions = mapTransactions(parsedTransactions)
+        const aggregatedTransactions = aggregateTransactions(parsedTransactions)
         const parsedExpectedTransactions =
             aggregatedTransactionsRecord.parse(expectedTransactions)
         const parsedAggregatedTransactions = aggregatedTransactionsRecord.parse(

@@ -1,8 +1,9 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
+import * as R from 'ramda'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { getTransactionsFromSource } from '../data.js'
-import { mapCustomerRelations } from '../handlers/related-customers.js'
+import { mapRelatedCustomers } from '../handlers/related-customers.js'
 import { relatedCustomerRecord } from '../model.js'
 import { CustomerId, RelatedCustomer } from '../types.js'
 
@@ -12,12 +13,12 @@ const getCustomers: FastifyPluginAsync = async (server) => {
             Reply: RelatedCustomer[]
             Params: { customerId: CustomerId }
         }>('/relatedCustomers/:customerId', {
-            handler: onGetRelatedCustomers,
             schema: {
                 response: {
                     200: zodToJsonSchema(relatedCustomerRecord),
                 },
             },
+            handler: onGetRelatedCustomers,
         }),
         server.get<{
             Reply: RelatedCustomer[]
@@ -38,10 +39,18 @@ const onGetRelatedCustomers = async (
     if (!customerId) return reply.badRequest('customerId is required.')
 
     const transactions = await getTransactionsFromSource()
-    const relatedCustomers = mapCustomerRelations(transactions, customerId)
+    const relatedCustomers = mapRelatedCustomers(transactions)
+
     if (!relatedCustomers) return reply.internalServerError()
 
-    void reply.send(relatedCustomers)
+    const filterByCustomerId = R.pipe(
+        R.groupBy(R.propOr(-1, 'customerId')),
+        R.prop(customerId)
+    )(relatedCustomers)
+
+    if (!filterByCustomerId) return reply.notFound()
+
+    void reply.send(filterByCustomerId)
 }
 
 export default getCustomers

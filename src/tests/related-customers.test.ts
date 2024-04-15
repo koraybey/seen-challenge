@@ -1,4 +1,5 @@
 import { test } from '@jest/globals'
+import { addHours } from 'date-fns'
 import supertest from 'supertest'
 
 import build from '../app.js'
@@ -7,7 +8,7 @@ import {
     mapRelationsByRelatedTransactionId,
 } from '../handlers/related-customers.js'
 import { transactionRecord } from '../model.js'
-import { createTransaction } from './data.mock.js'
+import { createTransaction, parseISODatetime } from './data.mock.js'
 
 describe('/relatedCustomers', () => {
     // eslint-plugin-jest does not detect assertions from supertest
@@ -19,6 +20,18 @@ describe('/relatedCustomers', () => {
         await supertest(app.server)
             .get('/relatedCustomers/3')
             .expect(200)
+            .expect('Content-Type', 'application/json; charset=utf-8')
+
+        await app.close()
+    })
+    // eslint-disable-next-line jest/expect-expect
+    test('GET with a non-existent customerId', async () => {
+        const app = await build()
+        await app.ready()
+
+        await supertest(app.server)
+            .get('/relatedCustomers/1')
+            .expect(404)
             .expect('Content-Type', 'application/json; charset=utf-8')
 
         await app.close()
@@ -122,11 +135,14 @@ describe('Fraud detection and relatedCustomers mapping functions', () => {
         expect(relatedCustomersByDeviceId).toEqual(expectedRelatedCustomers)
     })
     test('Map relations between customers based on relatedTransactionId', () => {
+        const now = Date.now()
+
         const transactions = [
             createTransaction({
                 customerId: 1,
                 transactionId: 1,
                 transactionType: 'P2P_SEND',
+                transactionDate: parseISODatetime(addHours(now, 0)),
                 metadata: {
                     relatedTransactionId: 2,
                 },
@@ -135,6 +151,7 @@ describe('Fraud detection and relatedCustomers mapping functions', () => {
                 customerId: 2,
                 transactionId: 2,
                 transactionType: 'P2P_RECEIVE',
+                transactionDate: parseISODatetime(addHours(now, 0)),
                 metadata: {
                     relatedTransactionId: 1,
                 },
@@ -143,21 +160,28 @@ describe('Fraud detection and relatedCustomers mapping functions', () => {
                 customerId: 3,
                 transactionId: 3,
                 transactionType: 'WIRE_OUTGOING',
+                transactionDate: parseISODatetime(addHours(now, 1)),
                 metadata: {
-                    relatedTransactionId: 5,
+                    relatedTransactionId: 4,
+                },
+            }),
+            createTransaction({
+                customerId: 5,
+                transactionId: 4,
+                transactionType: 'WIRE_INCOMING',
+                transactionDate: parseISODatetime(addHours(now, 1)),
+                metadata: {
+                    relatedTransactionId: 3,
                 },
             }),
             createTransaction({
                 customerId: 4,
-                transactionId: 4,
-                transactionType: 'ACH_INCOMING',
-                metadata: {},
-            }),
-            createTransaction({
-                customerId: 5,
                 transactionId: 5,
-                transactionType: 'WIRE_INCOMING',
-                metadata: {},
+                transactionType: 'ACH_INCOMING',
+                transactionDate: parseISODatetime(addHours(now, 3)),
+                metadata: {
+                    relatedTransactionId: 1,
+                },
             }),
         ]
         const parsedTransactions = transactionRecord.parse(transactions)
@@ -183,7 +207,14 @@ describe('Fraud detection and relatedCustomers mapping functions', () => {
                 relatedCustomerId: 3,
                 relatedTransactionId: 3,
                 relationType: 'WIRE_INCOMING',
-                transactionId: 5,
+                transactionId: 4,
+            },
+            {
+                customerId: 3,
+                relatedCustomerId: 5,
+                relatedTransactionId: 4,
+                relationType: 'WIRE_OUTGOING',
+                transactionId: 3,
             },
         ]
         expect(relatedCustomersByRelatedtransactionId).toEqual(

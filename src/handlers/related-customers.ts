@@ -1,7 +1,7 @@
 import { addHours, parseISO } from 'date-fns'
 import * as R from 'ramda'
 
-import { CustomerId, RelatedCustomer, Transaction } from '../types.js'
+import { RelatedCustomer, Transaction } from '../types.js'
 
 export const mapRelationsByDeviceId = (
     transactions: Transaction[]
@@ -37,7 +37,7 @@ export const mapRelationsByDeviceId = (
         R.flatten(
             R.pipe(
                 R.filter(R.pathSatisfies(R.isNotNil, ['metadata', 'deviceId'])),
-                R.collectBy(R.pathOr('Unknown', ['metadata', 'deviceId'])),
+                R.collectBy(R.pathOr(-1, ['metadata', 'deviceId'])),
                 R.reject(R.compose(R.gte(1), R.length)),
                 R.flatten,
                 R.map(flagAccountsWithSameDevice)
@@ -57,6 +57,7 @@ export const mapRelationsByRelatedTransactionId = (
     }: Transaction): RelatedCustomer | undefined => {
         const targetTransaction = transactions.find(
             (d) =>
+                // d.metadata.relatedTransactionId === relatedTransactionId &&
                 d.customerId !== relatedCustomerId &&
                 d.transactionId === metadata?.relatedTransactionId &&
                 parseISO(d.transactionDate).getTime() >=
@@ -85,21 +86,17 @@ export const mapRelationsByRelatedTransactionId = (
     )
 }
 
-export const mapCustomerRelations = (
-    transactions: Transaction[],
-    customerId: CustomerId
+export const mapRelatedCustomers = (
+    transactions: Transaction[]
 ): RelatedCustomer[] | undefined => {
     const relatedCustomersByDeviceId = mapRelationsByDeviceId(transactions)
     const relatedCustomersByRelatedTransactionId =
         mapRelationsByRelatedTransactionId(transactions)
 
-    const relatedCustomerEntries = R.flatten([
+    const relatedCustomers = R.flatten([
         ...relatedCustomersByDeviceId,
         ...relatedCustomersByRelatedTransactionId,
     ])
 
-    return R.pipe(
-        R.groupBy(R.propOr('undefined', 'customerId')),
-        R.prop(customerId)
-    )(relatedCustomerEntries)
+    return relatedCustomers
 }
