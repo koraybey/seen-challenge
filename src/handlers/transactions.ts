@@ -18,44 +18,47 @@ const mapTimeline = (data: Transaction) => {
 export const mapTransactions = (
     transactions: Transaction[]
 ): AggregatedTransaction[] => {
-    const createNewTransactionObject = (
-        transaction: Transaction[]
-    ): AggregatedTransaction | undefined => {
-        const head = R.head(transaction)
-        const last = R.last(transaction)
-        if (!head || !last) return undefined
-        const {
-            transactionDate: createdAt,
-            transactionId,
-            transactionType,
-            description,
-            customerId,
-        } = head
-        const {
-            transactionDate: updatedAt,
-            authorizationCode,
-            transactionStatus: status,
-        } = last
-        const aggregatedTransaction = {
-            createdAt,
-            updatedAt: transaction.length === 1 ? undefined : updatedAt,
-            customerId,
-            transactionId,
-            authorizationCode,
-            status,
-            description,
-            transactionType,
-            metadata: {},
-            timeline: R.map(mapTimeline, transaction),
-        }
-        return aggregatedTransaction
-    }
+    const createNewTransactionObject = R.compose(
+        R.map((transaction: Transaction[]) => {
+            const head = R.head(transaction)
+            const last = R.last(transaction)
+            if (!head || !last) return
+            const {
+                transactionDate: createdAt,
+                transactionId,
+                transactionType,
+                description,
+                customerId,
+            } = head
+            const {
+                transactionDate: updatedAt,
+                authorizationCode,
+                transactionStatus: status,
+            } = last
+            return {
+                createdAt,
+                updatedAt: transaction.length === 1 ? undefined : updatedAt,
+                customerId,
+                transactionId,
+                authorizationCode,
+                status,
+                description,
+                transactionType,
+                metadata: {},
+                timeline: R.map(mapTimeline, transaction),
+            }
+        }),
+        R.collectBy(R.pathOr('', ['authorizationCode']))
+    )
+
     return R.reject(
         R.isNil,
-        R.compose(
-            R.map(createNewTransactionObject),
-            R.collectBy(R.prop('authorizationCode'))
-        )(transactions)
+        R.flatten(
+            R.compose(
+                R.map(createNewTransactionObject),
+                R.collectBy(R.prop('customerId'))
+            )(transactions)
+        )
     )
 }
 

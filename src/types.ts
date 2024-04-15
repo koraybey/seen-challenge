@@ -8,14 +8,16 @@ type RelatedCustomer = z.infer<typeof schema.relatedCustomer>
 type AggregatedTransaction = z.infer<typeof schema.aggregatedTransaction>
 type Timeline = z.infer<typeof schema.timeline>
 type Transaction = z.infer<typeof schema.transaction>
+type TransactionStatus = z.infer<typeof schema.transactionStatus>
 type CustomerId = z.infer<typeof schema.customerId>
 
 export {
-    TransactionType,
     RelationType,
     RelatedCustomer,
-    AggregatedTransaction,
-    Timeline,
     Transaction,
+    TransactionStatus,
+    TransactionType,
+    AggregatedTransaction,
     CustomerId,
+    Timeline,
 }

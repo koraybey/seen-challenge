@@ -101,6 +101,13 @@ const timeline = z.object({
 })
 const timelineRecord = z.array(timeline)
 
+const schemaError = [
+    'status does not match transactionStatus of last transaction.',
+    'createdAt cannot be older than updatedAt.',
+    'createdAt does not match transactionDate of first transaction.',
+    'updatedAt does not match transactionDate of last transaction.',
+]
+
 const aggregatedTransaction = z
     .object({
         createdAt: dateTimeWithOffset,
@@ -115,30 +122,32 @@ const aggregatedTransaction = z
         timeline: timelineRecord,
     })
     .superRefine((transaction, context) => {
-        // updatedAt date must be older than createdAt date
+        if (!transaction) return
+        if (transaction.status !== R.last(transaction.timeline)?.status)
+            context.addIssue({
+                code: z.ZodIssueCode.invalid_date,
+                message: schemaError[0],
+            })
         if (
             transaction.updatedAt &&
             parseISO(transaction.createdAt).getTime() >=
                 parseISO(transaction.updatedAt).getTime()
-        ) {
+        )
             context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
-                message:
-                    'createdAt and updatedAt does not respect timeline order.',
+                message: schemaError[1],
             })
-        }
-        if (
-            transaction &&
-            transaction.status !== R.last(transaction.timeline)?.status
-        ) {
+        if (transaction.createdAt !== R.head(transaction.timeline)?.createdAt)
             context.addIssue({
-                code: z.ZodIssueCode.custom,
-                message:
-                    'Transaction status is not equal to the status of the latest transaction from the transaction lifecycle.',
+                code: z.ZodIssueCode.invalid_date,
+                message: schemaError[2],
             })
-        }
-        // TODO Nested latest transaction data from the timeline matches the parent transaction data
-        // TODO Validate amounts based on transactionType (e.g. 'RETURN' cannot be a negative value)
+        if (!(transaction.timeline.length >= 2)) return
+        if (transaction.updatedAt !== R.last(transaction.timeline)?.createdAt)
+            context.addIssue({
+                code: z.ZodIssueCode.invalid_date,
+                message: schemaError[3],
+            })
     })
 
 const aggregatedTransactionsRecord = z.array(aggregatedTransaction)
@@ -160,12 +169,18 @@ const relationType = z.enum([...transactionTypeList, 'DEVICE'])
 
 const relatedCustomer = z.object({
     customerId,
+    transactionId,
     relatedCustomerId: customerId,
     relationType,
+    relatedTransactionId: transactionId,
 })
 
 const relatedCustomerRecord = z.array(
-    relatedCustomer.omit({ customerId: true })
+    relatedCustomer.omit({
+        customerId: true,
+        relatedTransactionId: true,
+        transactionId: true,
+    })
 )
 
 export {
@@ -175,9 +190,11 @@ export {
     transaction,
     transactionRecord,
     transactionType,
+    transactionStatus,
     aggregatedTransaction,
     aggregatedTransactionsRecord,
     dateTimeWithOffset,
     timeline,
     timelineRecord,
+    schemaError,
 }

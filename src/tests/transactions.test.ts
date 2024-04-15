@@ -1,15 +1,51 @@
 import { test } from '@jest/globals'
-import { addHours } from 'date-fns'
+import { addHours, addMinutes } from 'date-fns'
+import * as R from 'ramda'
 import supertest from 'supertest'
 
 import build from '../app.js'
 import { mapTransactions } from '../handlers/transactions.js'
-import { aggregatedTransactionsRecord, transactionRecord } from '../model.js'
+import {
+    aggregatedTransactionsRecord,
+    schemaError,
+    transactionRecord,
+} from '../model.js'
 import {
     createTimeline,
     createTransaction,
     parseISODatetime,
 } from './data.mock.js'
+
+const now = Date.now()
+const transactions = [
+    createTransaction({
+        transactionId: 1,
+        authorizationCode: 'F00001',
+        transactionDate: parseISODatetime(addHours(now, 0)),
+        transactionStatus: 'PENDING',
+    }),
+    createTransaction({
+        transactionId: 2,
+        authorizationCode: 'F00001',
+        transactionDate: parseISODatetime(addHours(now, 1)),
+        transactionStatus: 'SETTLED',
+        description: 'Amazon',
+    }),
+    createTransaction({
+        transactionId: 3,
+        authorizationCode: 'F00001',
+        transactionDate: parseISODatetime(addHours(now, 2)),
+        transactionStatus: 'RETURNED',
+    }),
+    createTransaction({
+        transactionId: 4,
+        customerId: 1,
+        authorizationCode: 'F00002',
+        transactionDate: parseISODatetime(addHours(now, 3)),
+        transactionStatus: 'SETTLED',
+    }),
+]
+const parsedTransactions = transactionRecord.parse(transactions)
 
 describe('/transactions', () => {
     // eslint-plugin-jest does not detect assertions from supertest
@@ -25,6 +61,7 @@ describe('/transactions', () => {
 
         await app.close()
     })
+
     // eslint-disable-next-line jest/expect-expect
     test('GET without a customerId', async () => {
         const app = await build()
@@ -37,149 +74,160 @@ describe('/transactions', () => {
 
         await app.close()
     })
-})
 
-test('Aggregate transactions by authorizationCode', () => {
-    const now = Date.now()
-    const transactions = [
-        createTransaction({
-            transactionId: 1,
-            authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 0)),
-            transactionStatus: 'PENDING',
-        }),
-        createTransaction({
-            transactionId: 2,
-            authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 1)),
-            transactionStatus: 'SETTLED',
-            description: 'Amazon',
-        }),
-        createTransaction({
-            transactionId: 3,
-            authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 2)),
-            transactionStatus: 'RETURNED',
-        }),
-        createTransaction({
-            transactionId: 4,
-            customerId: 1,
-            authorizationCode: 'F00002',
-            transactionDate: parseISODatetime(addHours(now, 3)),
-            transactionStatus: 'SETTLED',
-        }),
-    ]
-    const parsedTransactions = transactionRecord.parse(transactions)
-
-    const expectedTransactions = [
-        {
-            ...parsedTransactions[0],
-            status: parsedTransactions[2].transactionStatus,
-            createdAt: parseISODatetime(addHours(now, 0)),
-            updatedAt: parseISODatetime(addHours(now, 2)),
-            timeline: [
-                createTimeline({
-                    createdAt: parseISODatetime(addHours(now, 0)),
-                    status: 'PENDING',
-                }),
-                createTimeline({
-                    createdAt: parseISODatetime(addHours(now, 1)),
-                    status: 'SETTLED',
-                }),
-                createTimeline({
-                    createdAt: parseISODatetime(addHours(now, 2)),
-                    status: 'RETURNED',
-                }),
-            ],
-        },
-        {
-            ...parsedTransactions[3],
-            status: parsedTransactions[3].transactionStatus,
-            createdAt: parseISODatetime(addHours(now, 3)),
-            timeline: [
-                createTimeline({
-                    createdAt: parseISODatetime(addHours(now, 3)),
-                    status: 'SETTLED',
-                }),
-            ],
-        },
-    ]
-
-    const aggregatedTransactions = mapTransactions(parsedTransactions)
-    const parsedExpectedTransactions =
-        aggregatedTransactionsRecord.parse(expectedTransactions)
-    const parsedAggregatedTransactions = aggregatedTransactionsRecord.parse(
-        aggregatedTransactions
-    )
-
-    expect(parsedAggregatedTransactions).toEqual(parsedExpectedTransactions)
-})
-
-describe('Edge case Zod validations', () => {
-    const now = Date.now()
-    const transactions = [
-        createTransaction({
-            transactionId: 1,
-            authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 0)),
-            transactionStatus: 'PENDING',
-        }),
-        createTransaction({
-            transactionId: 2,
-            authorizationCode: 'F00001',
-            transactionDate: parseISODatetime(addHours(now, 1)),
-            transactionStatus: 'SETTLED',
-        }),
-    ]
-    const parsedTransactions = transactionRecord.parse(transactions)
-    test('ZodError when createdAt is older than updatedAt', async () => {
+    test('Aggregate transactions by authorizationCode', () => {
         const expectedTransactions = [
             {
-                ...parsedTransactions[0],
-                status: parsedTransactions[1].transactionStatus,
-                createdAt: parseISODatetime(addHours(now, 1)),
-                updatedAt: parseISODatetime(addHours(now, 1)),
+                ...R.nth(0, parsedTransactions),
+                createdAt: R.nth(0, parsedTransactions)?.transactionDate,
+                updatedAt: R.nth(2, parsedTransactions)?.transactionDate,
+                status: R.nth(2, parsedTransactions)?.transactionStatus,
                 timeline: [
                     createTimeline({
-                        createdAt: parseISODatetime(addHours(now, 0)),
-                        status: 'PENDING',
+                        createdAt: R.nth(0, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(0, parsedTransactions)?.transactionStatus,
                     }),
                     createTimeline({
-                        createdAt: parseISODatetime(addHours(now, 1)),
-                        status: 'SETTLED',
+                        createdAt: R.nth(1, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(1, parsedTransactions)?.transactionStatus,
+                    }),
+                    createTimeline({
+                        createdAt: R.nth(2, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(2, parsedTransactions)?.transactionStatus,
+                    }),
+                ],
+            },
+            {
+                ...R.nth(3, parsedTransactions),
+                createdAt: R.nth(3, parsedTransactions)?.transactionDate,
+                updatedAt: undefined,
+                status: R.nth(3, parsedTransactions)?.transactionStatus,
+                timeline: [
+                    createTimeline({
+                        createdAt: R.nth(3, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(3, parsedTransactions)?.transactionStatus,
                     }),
                 ],
             },
         ]
-        await expect(
-            aggregatedTransactionsRecord.parseAsync(expectedTransactions)
-        ).rejects.toThrow(
-            'createdAt and updatedAt does not respect timeline order.'
+
+        const aggregatedTransactions = mapTransactions(parsedTransactions)
+        const parsedExpectedTransactions =
+            aggregatedTransactionsRecord.parse(expectedTransactions)
+        const parsedAggregatedTransactions = aggregatedTransactionsRecord.parse(
+            aggregatedTransactions
         )
+
+        expect(parsedAggregatedTransactions).toEqual(parsedExpectedTransactions)
     })
-    test('ZodError when transactionId is not equal to transactionId of the latest transaction in the lifecycle', async () => {
+})
+
+describe('Throw ZodError when edge case validations fail', () => {
+    test('status does not match transactionStatus of last transaction', async () => {
         const expectedTransactions = [
             {
-                ...parsedTransactions[0],
-                status: parsedTransactions[0].transactionStatus,
-                createdAt: parseISODatetime(addHours(now, 0)),
-                updatedAt: parseISODatetime(addHours(now, 1)),
+                ...R.nth(0, parsedTransactions),
+                createdAt: R.nth(0, parsedTransactions)?.transactionDate,
+                updatedAt: R.nth(1, parsedTransactions)?.transactionDate,
+                status: R.nth(0, parsedTransactions)?.transactionStatus, // R.nth(1, parsedTransactions)?.transactionStatus
                 timeline: [
                     createTimeline({
-                        createdAt: parseISODatetime(addHours(now, 0)),
-                        status: 'PENDING',
+                        createdAt: R.nth(0, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(0, parsedTransactions)?.transactionStatus,
                     }),
                     createTimeline({
-                        createdAt: parseISODatetime(addHours(now, 1)),
-                        status: 'SETTLED',
+                        createdAt: R.nth(1, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(1, parsedTransactions)?.transactionStatus,
                     }),
                 ],
             },
         ]
         await expect(
             aggregatedTransactionsRecord.parseAsync(expectedTransactions)
-        ).rejects.toThrow(
-            'Transaction status is not equal to the status of the latest transaction from the transaction lifecycle.'
-        )
+        ).rejects.toThrow(schemaError[0])
+    })
+
+    test('createdAt cannot be older than updatedAt', async () => {
+        const expectedTransactions = [
+            {
+                ...R.nth(0, parsedTransactions),
+                createdAt: parseISODatetime(addHours(now, 3)), // R.nth(0, parsedTransactions)?.transactionDate
+                updatedAt: R.nth(1, parsedTransactions)?.transactionDate,
+                status: R.nth(1, parsedTransactions)?.transactionStatus,
+                timeline: [
+                    createTimeline({
+                        createdAt: R.nth(0, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(0, parsedTransactions)?.transactionStatus,
+                    }),
+                    createTimeline({
+                        createdAt: R.nth(1, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(1, parsedTransactions)?.transactionStatus,
+                    }),
+                ],
+            },
+        ]
+        await expect(
+            aggregatedTransactionsRecord.parseAsync(expectedTransactions)
+        ).rejects.toThrow(schemaError[1])
+    })
+
+    test('createdAt does not match transactionDate of first transaction', async () => {
+        const expectedTransactions = [
+            {
+                ...R.nth(0, parsedTransactions),
+                createdAt: parseISODatetime(addMinutes(now, 15)), // R.nth(0, parsedTransactions)?.transactionDate
+                updatedAt: R.nth(1, parsedTransactions)?.transactionDate,
+                status: R.nth(1, parsedTransactions)?.transactionStatus,
+                timeline: [
+                    createTimeline({
+                        createdAt: R.nth(0, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(0, parsedTransactions)?.transactionStatus,
+                    }),
+                    createTimeline({
+                        createdAt: R.nth(1, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(1, parsedTransactions)?.transactionStatus,
+                    }),
+                ],
+            },
+        ]
+        await expect(
+            aggregatedTransactionsRecord.parseAsync(expectedTransactions)
+        ).rejects.toThrow(schemaError[2])
+    })
+
+    test('updatedAt does not match transactionDate of last transaction', async () => {
+        const expectedTransactions = [
+            {
+                ...R.nth(0, parsedTransactions),
+                createdAt: R.nth(0, parsedTransactions)?.transactionDate,
+                updatedAt: parseISODatetime(addHours(now, 6)), // R.nth(1, parsedTransactions)?.transactionDate
+                status: R.nth(1, parsedTransactions)?.transactionStatus,
+                timeline: [
+                    createTimeline({
+                        createdAt: R.nth(0, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(0, parsedTransactions)?.transactionStatus,
+                    }),
+                    createTimeline({
+                        createdAt: R.nth(1, parsedTransactions)
+                            ?.transactionDate,
+                        status: R.nth(1, parsedTransactions)?.transactionStatus,
+                    }),
+                ],
+            },
+        ]
+        await expect(
+            aggregatedTransactionsRecord.parseAsync(expectedTransactions)
+        ).rejects.toThrow(schemaError[3])
     })
 })
