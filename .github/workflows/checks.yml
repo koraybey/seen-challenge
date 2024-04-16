@@ -6,41 +6,54 @@ concurrency:
     cancel-in-progress: true
 jobs:
     typescript:
-        container: node:lts-alpine3.18
         name: types
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: buildjet/setup-node@v3
+            - uses: actions/checkout@v4
+            - uses: buildjet/setup-node@v4
               with:
+                  node-version: 18
                   cache: 'yarn'
             - name: prepare
-              run: yarn
+              run: yarn --prefer-offline
             - name: check typescript
               run: yarn tsc
     lint:
-        container: node:lts-alpine3.18
         name: eslint
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: buildjet/setup-node@v3
+            - uses: actions/checkout@v4
+            - uses: buildjet/setup-node@v4
               with:
+                  node-version: 18
                   cache: 'yarn'
             - name: prepare
               run: yarn
             - name: eslint
               run: yarn lint
     test:
-        container: node:lts-alpine3.18
         name: tests
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
-            - uses: buildjet/setup-node@v3
+            - uses: actions/checkout@v4
+            - uses: buildjet/setup-node@v4
               with:
+                  node-version: 18
                   cache: 'yarn'
             - name: prepare
               run: yarn
             - name: test
               run: yarn test
+    build:
+        name: build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: buildjet/setup-node@v4
+              with:
+                  node-version: 18
+                  cache: 'yarn'
+            - name: prepare
+              run: yarn
+            - name: test
+              run: yarn build

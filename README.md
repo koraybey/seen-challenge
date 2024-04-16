@@ -13,7 +13,7 @@ This project contains the solutions to the back-end challenge provided by [Seen]
 
 ## Setting up the project and running the server
 
-This project uses [Node.js](https://nodejs.org/en) and [Yarn](https://classic.yarnpkg.com/).
+Requires [Node.js](https://nodejs.org/en) (>=18) and [Yarn](https://classic.yarnpkg.com/).
 
 Install dependencies, build and start the server by running:
 
