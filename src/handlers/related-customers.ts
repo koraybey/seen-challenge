@@ -131,7 +131,7 @@ export const mapRelationsByRelatedTransactionId = (
 
 export const mapRelatedCustomers = (
     transactions: Transaction[]
-): RelatedCustomer[] | undefined => {
+): RelatedCustomer[] => {
     const relatedCustomersByDeviceId = mapRelationsByDeviceId(transactions)
     const relatedCustomersByRelatedTransactionId =
         mapRelationsByRelatedTransactionId(transactions)

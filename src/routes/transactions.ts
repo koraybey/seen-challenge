@@ -2,7 +2,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import * as R from 'ramda'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
-import { getTransactionsFromSource } from '../data.js'
+import { transactionsData } from '../data.js'
 import { aggregateTransactions } from '../handlers/transactions.js'
 import { aggregatedTransactionsRecord } from '../model.js'
 import { AggregatedTransaction, CustomerId } from '../types.js'
@@ -39,10 +39,8 @@ const onGetTransactions = async (
     if (!customerId) {
         return reply.badRequest('customerId is required.')
     }
-    const transactions = await getTransactionsFromSource()
-    const aggregatedTransactions = aggregateTransactions(transactions)
 
-    if (!aggregatedTransactions) return reply.internalServerError()
+    const aggregatedTransactions = aggregateTransactions(await transactionsData)
 
     const transactionsByCustomerId = R.pipe(
         R.groupBy(R.propOr(-1, 'customerId')),
