@@ -11,42 +11,35 @@ import { transactionRecord } from '../model.js'
 import { createTransaction, parseISODatetime } from './data.mock.js'
 
 describe('/relatedCustomers', () => {
-    // eslint-plugin-jest does not detect assertions from supertest
-    // eslint-disable-next-line jest/expect-expect
     test('GET with a customerId', async () => {
         const app = await build()
+        if (!app) return
         await app.ready()
-
         await supertest(app.server)
             .get('/relatedCustomers/3')
             .expect(200)
             .expect('Content-Type', 'application/json; charset=utf-8')
-
         await app.close()
     })
-    // eslint-disable-next-line jest/expect-expect
     test('GET with a non-existent customerId', async () => {
         const app = await build()
+        if (!app) return
         await app.ready()
-
         await supertest(app.server)
             .get('/relatedCustomers/1')
             .expect([])
             .expect('Content-Type', 'application/json; charset=utf-8')
-
         await app.close()
     })
-    // eslint-disable-next-line jest/expect-expect
     test('GET without a customerId', async () => {
         const app = await build()
-        await app.ready()
+        await app?.ready()
 
-        await supertest(app.server)
+        await supertest(app!.server)
             .get('/relatedCustomers')
             .expect(400)
             .expect('Content-Type', 'application/json; charset=utf-8')
-
-        await app.close()
+        await app?.close()
     })
 })
 

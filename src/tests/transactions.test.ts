@@ -10,13 +10,10 @@ import {
     schemaError,
     transactionRecord,
 } from '../model.js'
-import {
-    createTimeline,
-    createTransaction,
-    parseISODatetime,
-} from './data.mock.js'
+import { createTransaction, parseISODatetime } from './data.mock.js'
 
 const now = Date.now()
+
 const transactions = [
     createTransaction({
         transactionId: 1,
@@ -48,41 +45,34 @@ const transactions = [
 const parsedTransactions = transactionRecord.parse(transactions)
 
 describe('/transactions', () => {
-    // eslint-plugin-jest does not detect assertions from supertest
-    // eslint-disable-next-line jest/expect-expect
     test('GET with a customerId', async () => {
         const app = await build()
+        if (!app) return
         await app.ready()
-
         await supertest(app.server)
             .get('/transactions/1')
             .expect(200)
             .expect('Content-Type', 'application/json; charset=utf-8')
-
         await app.close()
     })
-    // eslint-disable-next-line jest/expect-expect
     test('GET with a non-existent customerId', async () => {
         const app = await build()
+        if (!app) return
         await app.ready()
-
         await supertest(app.server)
             .get('/transactions/10')
             .expect([])
             .expect('Content-Type', 'application/json; charset=utf-8')
-
         await app.close()
     })
-    // eslint-disable-next-line jest/expect-expect
     test('GET without a customerId', async () => {
         const app = await build()
+        if (!app) return
         await app.ready()
-
         await supertest(app.server)
             .get('/transactions')
             .expect(400)
             .expect('Content-Type', 'application/json; charset=utf-8')
-
         await app.close()
     })
 
@@ -94,21 +84,24 @@ describe('/transactions', () => {
                 updatedAt: R.nth(2, parsedTransactions)?.transactionDate,
                 status: R.nth(2, parsedTransactions)?.transactionStatus,
                 timeline: [
-                    createTimeline({
+                    {
                         createdAt: R.nth(0, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(0, parsedTransactions)?.transactionStatus,
-                    }),
-                    createTimeline({
+                        amount: 0,
+                    },
+                    {
                         createdAt: R.nth(1, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(1, parsedTransactions)?.transactionStatus,
-                    }),
-                    createTimeline({
+                        amount: 0,
+                    },
+                    {
                         createdAt: R.nth(2, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(2, parsedTransactions)?.transactionStatus,
-                    }),
+                        amount: 0,
+                    },
                 ],
             },
             {
@@ -117,23 +110,21 @@ describe('/transactions', () => {
                 updatedAt: undefined,
                 status: R.nth(3, parsedTransactions)?.transactionStatus,
                 timeline: [
-                    createTimeline({
+                    {
                         createdAt: R.nth(3, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(3, parsedTransactions)?.transactionStatus,
-                    }),
+                        amount: 0,
+                    },
                 ],
             },
         ]
 
         const aggregatedTransactions = aggregateTransactions(parsedTransactions)
-        const parsedExpectedTransactions =
-            aggregatedTransactionsRecord.parse(expectedTransactions)
-        const parsedAggregatedTransactions = aggregatedTransactionsRecord.parse(
-            aggregatedTransactions
-        )
 
-        expect(parsedAggregatedTransactions).toEqual(parsedExpectedTransactions)
+        expect(
+            aggregatedTransactionsRecord.parse(aggregatedTransactions)
+        ).toEqual(aggregatedTransactionsRecord.parse(expectedTransactions))
     })
 })
 
@@ -146,16 +137,18 @@ describe('Throw ZodError when edge case validations fail', () => {
                 updatedAt: R.nth(1, parsedTransactions)?.transactionDate,
                 status: R.nth(0, parsedTransactions)?.transactionStatus, // R.nth(1, parsedTransactions)?.transactionStatus
                 timeline: [
-                    createTimeline({
+                    {
                         createdAt: R.nth(0, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(0, parsedTransactions)?.transactionStatus,
-                    }),
-                    createTimeline({
+                        amount: 0,
+                    },
+                    {
                         createdAt: R.nth(1, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(1, parsedTransactions)?.transactionStatus,
-                    }),
+                        amount: 0,
+                    },
                 ],
             },
         ]
@@ -172,16 +165,18 @@ describe('Throw ZodError when edge case validations fail', () => {
                 updatedAt: R.nth(1, parsedTransactions)?.transactionDate,
                 status: R.nth(1, parsedTransactions)?.transactionStatus,
                 timeline: [
-                    createTimeline({
+                    {
                         createdAt: R.nth(0, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(0, parsedTransactions)?.transactionStatus,
-                    }),
-                    createTimeline({
+                        amount: 0,
+                    },
+                    {
                         createdAt: R.nth(1, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(1, parsedTransactions)?.transactionStatus,
-                    }),
+                        amount: 0,
+                    },
                 ],
             },
         ]
@@ -198,16 +193,18 @@ describe('Throw ZodError when edge case validations fail', () => {
                 updatedAt: R.nth(1, parsedTransactions)?.transactionDate,
                 status: R.nth(1, parsedTransactions)?.transactionStatus,
                 timeline: [
-                    createTimeline({
+                    {
                         createdAt: R.nth(0, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(0, parsedTransactions)?.transactionStatus,
-                    }),
-                    createTimeline({
+                        amount: 0,
+                    },
+                    {
                         createdAt: R.nth(1, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(1, parsedTransactions)?.transactionStatus,
-                    }),
+                        amount: 0,
+                    },
                 ],
             },
         ]
@@ -224,16 +221,18 @@ describe('Throw ZodError when edge case validations fail', () => {
                 updatedAt: parseISODatetime(addHours(now, 6)), // R.nth(1, parsedTransactions)?.transactionDate
                 status: R.nth(1, parsedTransactions)?.transactionStatus,
                 timeline: [
-                    createTimeline({
+                    {
                         createdAt: R.nth(0, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(0, parsedTransactions)?.transactionStatus,
-                    }),
-                    createTimeline({
+                        amount: 0,
+                    },
+                    {
                         createdAt: R.nth(1, parsedTransactions)
                             ?.transactionDate,
                         status: R.nth(1, parsedTransactions)?.transactionStatus,
-                    }),
+                        amount: 0,
+                    },
                 ],
             },
         ]

@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import * as R from 'ramda'
+import { ReadonlyDeep } from 'type-fest'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { transactions } from '../data.js'
@@ -7,8 +8,8 @@ import { mapRelatedCustomers } from '../handlers/related-customers.js'
 import { relatedCustomerRecord } from '../model.js'
 import { CustomerId, RelatedCustomer } from '../types.js'
 
-const getCustomers: FastifyPluginAsync = async (server) => {
-    await Promise.all([
+const getCustomers: FastifyPluginAsync = async (server) =>
+    void (await Promise.all([
         server.get<{
             Reply: RelatedCustomer[]
             Params: { customerId: CustomerId }
@@ -26,15 +27,16 @@ const getCustomers: FastifyPluginAsync = async (server) => {
         }>('/relatedCustomers', {
             handler: onGetRelatedCustomers,
         }),
-    ])
-}
+    ]))
 
 const onGetRelatedCustomers = async (
-    request: FastifyRequest<{
-        Params: { customerId?: CustomerId }
-    }>,
-    reply: FastifyReply
-) => {
+    request: ReadonlyDeep<
+        FastifyRequest<{
+            Params: { customerId?: CustomerId }
+        }>
+    >,
+    reply: ReadonlyDeep<FastifyReply>
+): Promise<RelatedCustomer[]> => {
     const customerId = request.params.customerId
     if (!customerId) return reply.badRequest('customerId is required.')
 
@@ -47,8 +49,7 @@ const onGetRelatedCustomers = async (
 
     if (!filterByCustomerId) return []
 
-    void reply.send(filterByCustomerId)
-    return
+    return reply.send(filterByCustomerId)
 }
 
 export default getCustomers

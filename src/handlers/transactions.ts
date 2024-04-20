@@ -1,6 +1,7 @@
 import * as R from 'ramda'
+import { ReadonlyDeep } from 'type-fest'
 
-import { AggregatedTransaction, Transaction } from '../types.js'
+import { AggregatedTransaction, Timeline, Transaction } from '../types.js'
 
 //
 // Aggregate transactions by customerId and authorizationCode.
@@ -35,10 +36,10 @@ import { AggregatedTransaction, Transaction } from '../types.js'
 // transactions.test.ts includes tests similar to example above.
 //
 export const aggregateTransactions = (
-    transactions: Transaction[]
+    transactions: ReadonlyDeep<Transaction[]>
 ): AggregatedTransaction[] => {
     const createNewTransactionObject = R.compose(
-        R.map((transaction: Transaction[]) => {
+        R.map((transaction: ReadonlyDeep<Transaction[]>) => {
             const head = R.head(transaction)
             const last = R.last(transaction)
             if (!head || !last) return
@@ -70,7 +71,7 @@ export const aggregateTransactions = (
                 timeline: R.map(mapTimeline, transaction),
             }
         }),
-        R.collectBy(R.pathOr(-1, ['authorizationCode']))
+        R.collectBy(R.prop('authorizationCode'))
     )
 
     return R.reject(
@@ -84,7 +85,7 @@ export const aggregateTransactions = (
     )
 }
 
-const mapTimeline = (transaction: Transaction) => {
+const mapTimeline = (transaction: ReadonlyDeep<Transaction>): Timeline => {
     const {
         transactionStatus: status,
         transactionDate: createdAt,

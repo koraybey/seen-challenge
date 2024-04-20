@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import { ReadonlyDeep } from 'type-fest'
 
 import { RelatedCustomer, Transaction } from '../types.js'
 
@@ -31,10 +32,10 @@ import { RelatedCustomer, Transaction } from '../types.js'
 // related-customers.test.ts includes tests containing examples.
 //
 export const mapRelationsByDeviceId = (
-    transactions: Transaction[]
+    transactions: ReadonlyDeep<Transaction[]>
 ): RelatedCustomer[] => {
     const flagAccountsWithSameDevice = (
-        transaction: Transaction
+        transaction: ReadonlyDeep<Transaction>
     ): RelatedCustomer[] | undefined => {
         const customerIds = R.map(R.path(['customerId']))(transactions)
         const isRelated = R.includes(transaction.customerId, customerIds)
@@ -46,18 +47,19 @@ export const mapRelationsByDeviceId = (
             })
         )(
             R.filter(
-                R.pathEq(transaction.metadata?.deviceId, [
-                    'metadata',
-                    'deviceId',
-                ]),
+                R.compose(
+                    R.pathEq(transaction.metadata?.deviceId, [
+                        'metadata',
+                        'deviceId',
+                    ])
+                ),
                 R.reject(R.propEq(transaction.customerId, 'customerId'))(
                     transactions
                 )
             )
         )
-
-        if (isRelated) return accountsWithSameDevice
-        return
+        if (!isRelated) return undefined
+        return accountsWithSameDevice
     }
 
     return R.reject(
@@ -104,35 +106,34 @@ export const mapRelationsByDeviceId = (
 // related-customers.test.ts includes tests containing examples.
 //
 export const mapRelationsByRelatedTransactionId = (
-    transactions: Transaction[]
+    transactions: ReadonlyDeep<Transaction[]>
 ): RelatedCustomer[] => {
     const findAndMapRelatedTransactions = ({
         customerId: relatedCustomerId,
         metadata,
         transactionId: relatedTransactionId,
-    }: Transaction): RelatedCustomer | undefined => {
-        const targetTransaction = transactions.find(
-            (d) =>
+    }: ReadonlyDeep<Transaction>): RelatedCustomer | undefined => {
+        const targetTransaction = R.find(
+            (d: ReadonlyDeep<Transaction>) =>
                 // Find the target transaction by comparing origin relatedTransactionId to destination transactionId.
                 d.transactionId === metadata?.relatedTransactionId &&
                 // Transaction must belong to different users, check customerIds.
                 d.customerId !== relatedCustomerId &&
                 // Origin transaction relatedTransactionId must be equal to relatedTransactionId of target transaction.
                 d.metadata.relatedTransactionId === relatedTransactionId
-        )
-        if (targetTransaction)
-            return {
-                customerId: targetTransaction.customerId,
-                relatedCustomerId,
-                relationType: targetTransaction.transactionType,
-            }
-        return
+        )(transactions)
+        if (!targetTransaction) return undefined
+        return {
+            customerId: targetTransaction.customerId,
+            relatedCustomerId,
+            relationType: targetTransaction.transactionType,
+        }
     }
     return R.reject(R.isNil, R.map(findAndMapRelatedTransactions)(transactions))
 }
 
 export const mapRelatedCustomers = (
-    transactions: Transaction[]
+    transactions: ReadonlyDeep<Transaction[]>
 ): RelatedCustomer[] => {
     const relatedCustomersByDeviceId = mapRelationsByDeviceId(transactions)
     const relatedCustomersByRelatedTransactionId =

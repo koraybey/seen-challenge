@@ -4,14 +4,12 @@ module.exports = {
         node: true,
     },
     plugins: [
-        '@typescript-eslint',
         'functional',
         'simple-import-sort',
         'unused-imports',
         'promise',
         'prefer-arrow-functions',
     ],
-    parser: '@typescript-eslint/parser',
     extends: [
         'eslint:recommended',
         'plugin:unicorn/recommended',
@@ -29,17 +27,27 @@ module.exports = {
             extends: [
                 'plugin:@typescript-eslint/recommended',
                 'plugin:@typescript-eslint/recommended-requiring-type-checking',
+                'plugin:functional/external-typescript-recommended',
+                'plugin:functional/recommended',
+                'plugin:functional/no-other-paradigms',
+                'plugin:functional/stylistic',
             ],
+            parser: '@typescript-eslint/parser',
             parserOptions: {
                 project: true,
                 tsconfigRootDir: __dirname,
             },
         },
         {
-            files: ['src/**/*.mock.*', 'src/**/*.test.*'],
-            extends: ['plugin:jest/recommended'],
             env: {
                 jest: true,
+            },
+            files: ['src/**/*.mock.*', 'src/**/*.test.*'],
+            extends: ['plugin:jest/recommended'],
+            rules: {
+                'functional/no-expression-statements': 'off',
+                'functional/no-return-void': 'off',
+                'jest/expect-expect': 'off',
             },
         },
     ],
@@ -73,6 +81,12 @@ module.exports = {
             },
         ],
         eqeqeq: ['error', 'smart'],
-        quotes: ['error', 'single', { avoidEscape: true }],
+        quotes: [
+            'error',
+            'single',
+            {
+                avoidEscape: true,
+            },
+        ],
     },
 }
