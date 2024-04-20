@@ -57,6 +57,7 @@ export const mapRelationsByDeviceId = (
         )
 
         if (isRelated) return accountsWithSameDevice
+        return
     }
 
     return R.reject(
@@ -125,6 +126,7 @@ export const mapRelationsByRelatedTransactionId = (
                 relatedCustomerId,
                 relationType: targetTransaction.transactionType,
             }
+        return
     }
     return R.reject(R.isNil, R.map(findAndMapRelatedTransactions)(transactions))
 }

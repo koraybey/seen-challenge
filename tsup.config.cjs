@@ -1,8 +1,6 @@
-import type { Options } from 'tsup'
-
 const environment = process.env['NODE_ENV']
 
-export const tsup: Options = {
+export const tsup = {
     splitting: true,
     clean: true,
     format: ['esm'],

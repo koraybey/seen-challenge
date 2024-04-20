@@ -18,7 +18,6 @@ export const createTimeline = ({
         amount: amount ?? 0,
     }
 }
-
 export const createTransaction = ({
     transactionId,
     authorizationCode,
@@ -33,7 +32,7 @@ export const createTransaction = ({
     return {
         transactionId: transactionId ?? 1,
         authorizationCode: authorizationCode ?? 'F00001',
-        transactionDate: transactionDate ?? parseISODatetime(addHours(now, 3)),
+        transactionDate: transactionDate ?? parseISODatetime(addHours(now, 0)),
         customerId: customerId ?? 0,
         transactionType: transactionType ?? 'POS',
         transactionStatus: transactionStatus ?? 'SETTLED',

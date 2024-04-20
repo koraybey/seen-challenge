@@ -11,7 +11,7 @@ type Transaction = z.infer<typeof schema.transaction>
 type TransactionStatus = z.infer<typeof schema.transactionStatus>
 type CustomerId = z.infer<typeof schema.customerId>
 
-export {
+export type {
     RelationType,
     RelatedCustomer,
     Transaction,
