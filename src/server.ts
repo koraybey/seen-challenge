@@ -1,23 +1,20 @@
-import { exit } from 'node:process'
+import { Effect } from 'effect'
 
-import build from './app.js'
+import app from './app.js'
 
-const server = async () => {
-    const app = await build({
-        logger: {
-            level: 'info',
-            transport: {
-                target: 'pino-pretty',
+export const server = Effect.tryPromise({
+    try: () =>
+        app({
+            logger: {
+                level: 'info',
+                transport: {
+                    target: 'pino-pretty',
+                },
             },
-        },
-    })
-    return app
-}
+        }),
+    catch: () => new Error('Cannot build the server.'),
+})
 
-server()
+await Effect.runPromise(server)
     .then((s) => s.listen({ port: 3000 }))
-    .catch((error) => {
-        if (error) {
-            exit(1)
-        }
-    })
+    .catch(() => new Error('Error while trying to listen to the server.'))
