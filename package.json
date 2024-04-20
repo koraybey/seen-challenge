@@ -11,24 +11,28 @@
         "test": "jest",
         "build": "NODE_ENV=production tsup",
         "watch": "NODE_ENV=development tsup",
+        "benchmark": "autocannon -c 100 -d 5 -p 10",
         "dev": "nodemon ./dist/server.js",
         "start": "node ./dist/server.js",
         "prepare": "husky"
     },
     "devDependencies": {
         "@babel/core": "^7.24.4",
+        "@babel/eslint-parser": "^7.24.1",
         "@babel/preset-env": "^7.24.4",
         "@babel/preset-typescript": "^7.24.1",
         "@commitlint/cli": "^19.2.1",
         "@commitlint/config-conventional": "^19.1.0",
         "@faker-js/faker": "^8.4.1",
         "@tsconfig/node18": "^18.2.4",
+        "@tsconfig/strictest": "^2.0.5",
         "@types/jest": "^29.5.12",
         "@types/node": "^20.12.7",
         "@types/ramda": "^0.29.12",
         "@types/supertest": "^6.0.2",
         "@typescript-eslint/eslint-plugin": "^7.5.0",
         "@typescript-eslint/parser": "^7.5.0",
+        "autocannon": "^7.15.0",
         "babel-jest": "^29.7.0",
         "babel-plugin-transform-import-meta": "^2.2.1",
         "babel-preset-jest": "^29.6.3",
@@ -55,7 +59,8 @@
         "prettier": "^3.2.5",
         "supertest": "^6.3.4",
         "tsup": "^8.0.2",
-        "typescript": "^5.4.4"
+        "typescript": "^5.4.4",
+        "type-fest": "^4.15.0"
     },
     "dependencies": {
         "@fastify/autoload": "^5.8.0",

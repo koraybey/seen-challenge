@@ -1,23 +1,14 @@
 import { addHours, format } from 'date-fns'
+import { ReadonlyDeep } from 'type-fest'
+import { ReadonlyObjectDeep } from 'type-fest/source/readonly-deep.js'
 
 import { dateTimeWithOffset } from '../model.js'
-import { Timeline, Transaction } from '../types.js'
+import { Transaction } from '../types.js'
 
 const now = Date.now()
-export const parseISODatetime = (date: Date) =>
+export const parseISODatetime = (date: ReadonlyObjectDeep<Date>) =>
     dateTimeWithOffset.parse(format(date, "yyyy-MM-dd'T'HH:mm:ssXX"))
 
-export const createTimeline = ({
-    createdAt,
-    status,
-    amount,
-}: Partial<Timeline>): Timeline => {
-    return {
-        createdAt: createdAt ?? parseISODatetime(addHours(now, 0)),
-        status: status ?? 'SETTLED',
-        amount: amount ?? 0,
-    }
-}
 export const createTransaction = ({
     transactionId,
     authorizationCode,
@@ -28,7 +19,7 @@ export const createTransaction = ({
     description,
     amount,
     metadata,
-}: Partial<Transaction>): Transaction => {
+}: ReadonlyDeep<Partial<Transaction>>): Partial<Transaction> => {
     return {
         transactionId: transactionId ?? 1,
         authorizationCode: authorizationCode ?? 'F00001',

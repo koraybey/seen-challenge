@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import * as R from 'ramda'
+import { ReadonlyDeep } from 'type-fest'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 
 import { transactions } from '../data.js'
@@ -7,8 +8,8 @@ import { aggregateTransactions } from '../handlers/transactions.js'
 import { aggregatedTransactionsRecord } from '../model.js'
 import { AggregatedTransaction, CustomerId } from '../types.js'
 
-const getTransactions: FastifyPluginAsync = async (server) => {
-    await Promise.all([
+const getTransactions: FastifyPluginAsync = async (server) =>
+    void (await Promise.all([
         server.get<{
             Reply: AggregatedTransaction[]
             Params: { customerId: CustomerId }
@@ -26,15 +27,16 @@ const getTransactions: FastifyPluginAsync = async (server) => {
         }>('/transactions', {
             handler: onGetTransactions,
         }),
-    ])
-}
+    ]))
 
 const onGetTransactions = async (
-    request: FastifyRequest<{
-        Params: { customerId?: CustomerId }
-    }>,
-    reply: FastifyReply
-) => {
+    request: ReadonlyDeep<
+        FastifyRequest<{
+            Params: { customerId?: CustomerId }
+        }>
+    >,
+    reply: ReadonlyDeep<FastifyReply>
+): Promise<AggregatedTransaction[]> => {
     const customerId = request.params.customerId
     if (!customerId) {
         return reply.badRequest('customerId is required.')
@@ -49,8 +51,7 @@ const onGetTransactions = async (
 
     if (!transactionsByCustomerId) return []
 
-    void reply.send(transactionsByCustomerId)
-    return
+    return reply.send(transactionsByCustomerId)
 }
 
 export default getTransactions

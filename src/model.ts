@@ -101,12 +101,12 @@ const timeline = z.object({
 })
 const timelineRecord = z.array(timeline)
 
-const schemaError = [
-    'status does not match transactionStatus of last transaction.',
-    'createdAt cannot be older than updatedAt.',
-    'createdAt does not match transactionDate of first transaction.',
-    'updatedAt does not match transactionDate of last transaction.',
-]
+const schemaError = {
+    0: 'status does not match transactionStatus of last transaction.',
+    1: 'createdAt cannot be older than updatedAt.',
+    2: 'createdAt does not match transactionDate of first transaction.',
+    3: 'updatedAt does not match transactionDate of last transaction.',
+}
 
 const aggregatedTransaction = z
     .object({
@@ -127,7 +127,7 @@ const aggregatedTransaction = z
         if (!transaction) return
         // Ensure status is equal to status of last transaction.
         if (transaction.status !== R.last(transaction.timeline)?.status)
-            context.addIssue({
+            return void context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[0],
             })
@@ -137,20 +137,20 @@ const aggregatedTransaction = z
             parseISO(transaction.createdAt).getTime() >=
                 parseISO(transaction.updatedAt).getTime()
         )
-            context.addIssue({
+            return void context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[1],
             })
         // Ensure createdAt is equal to transactionDate of first transaction.
         if (transaction.createdAt !== R.head(transaction.timeline)?.createdAt)
-            context.addIssue({
+            return void context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[2],
             })
         // Ensure updatedAt is equal to transactionDate of last transaction.
         if (!(transaction.timeline.length >= 2)) return
         if (transaction.updatedAt !== R.last(transaction.timeline)?.createdAt)
-            context.addIssue({
+            return void context.addIssue({
                 code: z.ZodIssueCode.invalid_date,
                 message: schemaError[3],
             })
