@@ -50,7 +50,7 @@ GitHub Workflow file also specifies the checks to run when a [pull request is cr
 You may view and edit the configuration by navigating to `.github/workflows/checks.yml`.
 
 If you edit these tests, you do not have to open a PR to check if your changes work correctly.
-Install [act](https://github.com/nektos/act) and run `act` to run these checks locally before submission.
+Install [act](https://github.com/nektos/act) and run `act -P ubuntu-latest=node:18-buster-slim` to run these checks locally before submission.
 
 Steps vary depending on the architecture. You may need to specify your architecture with `--container-architecture` flag.
 
@@ -73,6 +73,10 @@ Retrieve aggregated transactions for each `customerId`
 ```shell
 curl -H "Content-Type: application/json" -X GET localhost:3000/transactions/1
 ```
+
+### Benchmarking
+
+[autocannon](https://github.com/mcollina/autocannon) benchmarks are available. Run `yarn benchmark $ENDPOINT` (change $ENDPOINT to route you would like to test) to start benchmarking.
 
 ## Assumptions
 
